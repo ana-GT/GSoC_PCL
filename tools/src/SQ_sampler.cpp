@@ -69,32 +69,56 @@ pcl::PointCloud<pcl::PointXYZ> SQ_sampler::getSuperEllipse_Pilu_Fisher( const do
     pcl::PointCloud<pcl::PointXYZ> cloud;
     double x, y;
     double c; double s;
-    double D = 0.01;
+    double D = 0.005;
 
     double theta; double dtheta;
 
-    theta = 0.1;
+    bool ascending = true;
+    theta = 0.0;
     for( int i = 0; i < _numSamples; ++i ) {
 
 	c = cos(theta); s = sin(theta);
-	x = _a1*pow( fabs(c), _e );
-	y = _a2*pow( fabs(s), _e );
+	if( !ascending ) { c = sin(theta); s = cos(theta); }
 
-	if( c < 0 ) { x = x*(-1); }
-	if( s < 0 ) { y = y*(-1); }
+	x = _a1*pow( c, _e );
+	y = _a2*pow( s, _e );
 
 	pcl::PointXYZ p;
 	p.x = x; p.y = y; p.z = 0;
 	cloud.points.push_back(p);
 
-	dtheta = diff_theta( D, _a1, _a2, _e, theta );
-	theta += dtheta;
+	dtheta = diff_theta( D, _a1, _a2, _e, theta, ascending );
+	if( ascending ) { theta += fabs(dtheta); }
+	else { theta -= fabs(dtheta); }
 
-	if( theta > 0.5*M_PI ) { break; }
+	if( theta >= M_PI/2.0) { std::cout << "Exceeded 90"<< std::endl; break; }
+	if( theta <= 0 && !ascending ) { std::cout << "Descending and got zero" << std::endl; break; }
 
-	std::cout << " Point: "<< p.x << " "<< p.y << " "<< p.z << " theta: "<< theta << " dtheta: "<< dtheta << std::endl;
+	std::cout << " Point: "<< p.x << " "<< p.y << " "<< p.z << 
+	    " theta: "<< theta << " dtheta: "<< dtheta << 
+	    " ascending: "<< ascending <<std::endl;
 
     }
+
+    // Now flip to the second quadrant
+    int n = cloud.points.size();
+    for( int i = 0; i < n; ++i ) {
+	pcl::PointXYZ p;
+	p = cloud.points[i];
+	p.x = -1*p.x;
+	cloud.points.push_back( p );
+    }
+
+    // Now mirror to III and IV quadrants
+    n = cloud.points.size();
+    for( int i = 0; i < n; ++i ) {
+	pcl::PointXYZ p;
+	p = cloud.points[i];
+	p.y = -1*p.y;
+	cloud.points.push_back( p );
+    }
+    
+    
     cloud.width = cloud.points.size();
     cloud.height = 1;
 
@@ -108,21 +132,31 @@ double SQ_sampler::diff_theta( const double &_D,
 			       const double &_a1, 
 			       const double &_a2,
 			       const double &_e,
-			       const double &_theta ) {
+			       const double &_theta,
+			       bool &_ascending ) {
     double num;
     double den; double den1; double den2;
     double c; double s;
 
-    c = cos(_theta);
-    s = sin(_theta);
-    
-    num = pow( c, 2 )*pow( s, 2 );
-    
-    den1 = pow( _a1, 2 )*pow( pow( fabs(c), _e ), 2 )*pow( s, 4 );
-    den2 = pow( _a2, 2 )*pow( pow( fabs(s), _e ), 2 )*pow( c, 4 );
-    den = den1 + den2;
+    double thresh_0 = 0.01;
+    double thresh_pi_2 = M_PI/2.0 - 0.1;
 
-    return (_D/_e)*sqrt( num/den );
+    c = cos(_theta); s = sin(_theta);
+    
+    if( _theta < thresh_0 ) {	
+	return pow( (_D/_a2) - pow(_theta,_e), (1.0/_e) ) - _theta;
+	 } else if( _theta > thresh_pi_2 ) {	
+	double theta = M_PI / 2.0 - _theta;
+	_ascending = false;
+	return pow( (_D/_a1) - pow( theta,_e), (1.0/_e) ) - theta;  
+    } else {
+
+	num = c*c*s*s;
+	den1 = _a1*_a1*pow(s,4)*pow(pow(c,_e),2);
+	den2 = _a2*_a2*pow(c,4)*pow(pow(s,_e),2);
+	den = den1 + den2;
+	return (_D/_e)*sqrt( num / den );
+    }
 }
 
 
