@@ -1,6 +1,6 @@
 /**
  * @file minimizer.h
- * @brief Mock minimizer for fi =a0 +a1*xi^2 + a2*yi + a3*zi^3 
+ * @brief Draft version of minimizer with Maxima symbolic equations in .f file
  */
 #pragma once
 
@@ -9,6 +9,16 @@
 
 // Helpers
 double getRand( double _min, double _max );
+
+extern "C" {
+    void Jac_( double a, double b, double c, double e1, double e2,
+	      double x, double y, double z, 
+	      double *J );
+
+    void Hessian_( double a, double b, double c, double e1, double e2,
+	      double x, double y, double z, 
+	      double **H );
+}
 
 /**
  * @class minimizer
@@ -19,17 +29,19 @@ class minimizer {
     minimizer();
     ~minimizer();
 
-    void generatePoints( int _num );
+    void generatePoints( int _num,
+			 double _a1, double _a2, double _a3,
+			 double _e1, double _e2 );
     void visualizePoints();
     bool minimize();
-    Eigen::VectorXd df( Eigen::VectorXd _a );
-    Eigen::MatrixXd ddf( Eigen::VectorXd _a ); 
+    Eigen::VectorXd df( Eigen::VectorXd _params );
+    Eigen::MatrixXd ddf( Eigen::VectorXd _params ); 
     int getNumSamples() { return mSamples->points.size(); }
  private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr mSamples;
     std::vector<double> mF;
 
-    Eigen::VectorXd mA; // Coefficients to be found
+    Eigen::VectorXd mParams; // Coefficients to be found
     double mLambda; // Damped coefficient
 
     double mMinThresh;

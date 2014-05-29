@@ -1,13 +1,13 @@
 /* ===================== */
 /* Jacobian and Hessian  */
 /* ===================== */
-
+load(f90);
 SQEq : ((x/a)^(2/e2) + (y/b)^(2/e2))^(e2/e1) + (z/c)^(2/e1) - 1;
 J : jacobian( [SQEq],[a,b,c,e1,e2] )$
-H : hessian( [SQEq], [a,b,c,e1,e2] )$
+H : hessian( SQEq, [a,b,c,e1,e2] )$
 
 with_stdout("JH.f",
-  print("      Subroutine JH ( a, b, c, e1, e2, x, y, z,J,H )"),
+  print("      Subroutine Jac ( a, b, c, e1, e2, x, y, z,J )"),
   print("      Double Precision a"),
   print("      Double Precision b"),
   print("      Double Precision c"),
@@ -17,9 +17,22 @@ with_stdout("JH.f",
   print("      Double Precision y"),
   print("      Double Precision z"),
   print("      Double Precision J(1,5)"),
-  print("      Double Precision H(5,5)"),
   fortran( 'J = J ),
+  print("      Return"),
+  print("      End"),
+
+  print("      Subroutine Hessian ( a, b, c, e1, e2, x, y, z, H )"),
+  print("      Double Precision a"),
+  print("      Double Precision b"),
+  print("      Double Precision c"),
+  print("      Double Precision e1"),
+  print("      Double Precision e2"),
+  print("      Double Precision x"),
+  print("      Double Precision y"),
+  print("      Double Precision z"),
+  print("      Double Precision H(5,5)"),
   fortran( 'H = H ),
   print("      Return"),
   print("      End")
+
 );

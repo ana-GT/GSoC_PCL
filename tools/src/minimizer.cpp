@@ -16,21 +16,29 @@ minimizer::minimizer() :
     mSamples( new pcl::PointCloud<pcl::PointXYZ> ) {
     srand( time(NULL) );
 
-    mA.resize(4);
-    mA << 1.0, 4.5, 3.6, 2.7;
+    mParams.resize(5);
+    mParams << 1.0, 4.5, 3.6, 1.5, 0.5;
     mLambda = 0.1;
     mMaxIter = 10000;
     mMinThresh = 0.001;
 }
 
+/**
+ * @function minimizer
+ * @brief Destructor
+ */
 minimizer::~minimizer() {
 
 }
 
+
+
 /**
  * @function generatePoints
  */
-void minimizer::generatePoints( int _num ) {
+void minimizer::generatePoints( int _num,
+				double _a1, double _a2, double _a3,
+				double _e1, double _e2 ) {
 
     double x, y, z, f;
 
@@ -41,7 +49,7 @@ void minimizer::generatePoints( int _num ) {
 	y = getRand( -1, 1 );
 	z = getRand( -1, 1 );
 
-	f = mA(0) + mA(1)*x*x + mA(2)*y + mA(3)*z*z*z + getRand( -0.2, 0.2 );
+	f = mParams(0) + mParams(1)*x*x + mParams(2)*y + mParams(3)*z*z*z + getRand( -0.2, 0.2 );
 
 	mSamples->points.push_back( pcl::PointXYZ(x,y,z) );
 	mF.push_back(f);
@@ -56,7 +64,7 @@ void minimizer::visualizePoints() {
 
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     viewer->setBackgroundColor (0, 0, 0);
-    viewer->addCoordinateSystem (1.0, 0);
+    viewer->addCoordinateSystem (1.0, "main", 0);
     viewer->initCameraParameters ();
     
     // 2. Visualize the clouds
@@ -75,107 +83,112 @@ void minimizer::visualizePoints() {
  * @function minimize
  */
 bool minimizer::minimize() {
-
-    Eigen::MatrixXd H; Eigen::MatrixXd dH = Eigen::MatrixXd::Identity(4,4);
+    
+    Eigen::MatrixXd H; 
+    Eigen::MatrixXd dH = Eigen::MatrixXd::Identity(5,5);
 
     // Initialize mA with some value
     int iter = 0;
-    Eigen::VectorXd oldA;
+    Eigen::VectorXd oldParams;
 
-    mA << 1.0, 1.0, 1.0, 1.0;
-    std::cout << "Initial guess for coefficients: "<< mA.transpose() << std::endl;
+    mParams << 1.0, 1.0, 1.0, 1.0, 1.0;
+    std::cout << "Initial guess for coefficients: "<< mParams.transpose() << std::endl;
 
     do {
-	oldA = mA;
-	H = ddf( mA );
-	for( int i = 0; i < 4; ++i ) { dH(i,i) = H(i,i); }
-	mA = mA - (H + mLambda*dH).inverse()*df( mA );
+	oldParams = mParams;
+	H = ddf( mParams );
+	for( int i = 0; i < 5; ++i ) { dH(i,i) = H(i,i); }
+	mParams = mParams - (H + mLambda*dH).inverse()*df( mParams );
 	
 	iter++;
-    } while( iter < mMaxIter && (mA - oldA).norm() > mMinThresh );
+    } while( iter < mMaxIter && (mParams - oldParams).norm() > mMinThresh );
     
     if( iter >= mMaxIter ) {
 	std::cout << "[BAD] Crab, we did not converge after "<<iter<<" iterations"<< std::endl;
-	std::cout << "Final coefficients: "<< mA.transpose() << std::endl;
+	std::cout << "Final coefficients: "<< mParams.transpose() << std::endl;
 	return false;
     } else {
 	std::cout << "[GOOD] Yes, we did converge in "<< iter << std::endl;
-	std::cout << "Final coefficients: "<< mA.transpose() << std::endl;
+	std::cout << "Final coefficients: "<< mParams.transpose() << std::endl;
 	return true;
     }
+    
 
+    return true;
 }
 
 /**
  * @function df
- * @brief Returns the derivative of f w.r.t. a
+ * @brief Returns the derivative of f w.r.t. params
  */
-Eigen::VectorXd minimizer::df( Eigen::VectorXd _a ) {
-
-    Eigen::VectorXd dfda(4); dfda = Eigen::VectorXd::Zero(4);
+Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
+    
+    Eigen::VectorXd df(5); df = Eigen::VectorXd::Zero(5);
     double x, y, z;
-    double hr;
-
+    
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     int i;
+    double* jac;
+
+    for( int n = 0; n < 5; ++n ) {
+	df(n) = 0;	
+    }
+
     for( it = mSamples->begin(), i = 0; 
 	 it != mSamples->end(); 
 	 ++it, ++i ) {
-	hr = _a(0) + _a(1)*pow( it->x, 2 ) + _a(2)*(it->y) + _a(3)*pow(it->z, 3 ) - mF[i];
-	dfda(0) += hr;
-	dfda(1) += hr*pow(it->x, 2);
-	dfda(2) += hr*it->y;
-	dfda(3) += hr*pow(it->z,3);	
-    }
+	Jac_( _params(0), _params(1), _params(2), _params(3), _params(4),
+	      it->x, it->y, it->z, jac );
 
-    return dfda;
+	for( int n = 0; n < 5; ++n ) {
+	    df(n) += jac[n];	
+	}
+
+    }
+    
+    return df;
+    
 }
 
 /**
  * @function ddf
  * @brief Calculates the Hessian
  */
-Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _a ) {
+Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 
-    Eigen::MatrixXd ddfda(4,4); ddfda = Eigen::MatrixXd::Zero(4,4);
+    Eigen::MatrixXd ddf(5,5); ddf = Eigen::MatrixXd::Zero(5,5);
     double x, y, z;
-    double hr;
 
+    
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     int i;
+    double **hes;
+
+    for( int m = 0; m < 5; ++m ) {
+	for( int n = 0; n < 5; ++n ) {
+	    ddf(m,n) = 0;
+	}
+    }
+
+
     for( it = mSamples->begin(), i = 0; 
 	 it != mSamples->end(); 
 	 ++it, ++i ) {
 
-	ddfda(0,0) += 1;
-	ddfda(0,1) += pow( it->x, 2 );
-	ddfda(0,2) += it->y;
-	ddfda(0,3) += pow( it->z, 3 );
+	Hessian_( _params(0), _params(1), _params(2),
+		  _params(3), _params(4),
+		  it->x, it->y, it->z, hes );
 
-	//ddfda(1,0) += ;
-	ddfda(1,1) += pow(it->x, 4);
-	ddfda(1,2) += pow(it->x, 2)*(it->y);
-	ddfda(1,3) += pow(it->x, 2)*pow(it->z, 3);
+	for( int m = 0; m < 5; ++m ) {
+	    for( int n = 0; n < 5; ++n ) {
+		ddf(m,n) += hes[m][n];
+	    }
+	}
 
-	//ddfda(2,0) += ;
-	//ddfda(2,1) += ;
-	ddfda(2,2) += pow(it->y, 2);
-	ddfda(2,3) += pow(it->z,3)*(it->y);
-
-	//ddfda(3,0) += ;
-	//ddfda(3,1) += ;
-	//ddfda(3,2) += ;
-	ddfda(3,3) += pow(it->z,6);
     }
 
-    ddfda(1,0) = ddfda(0,1);
-    ddfda(2,0) = ddfda(0,2);
-    ddfda(2,1) = ddfda(1,2);
-    ddfda(3,0) = ddfda(0,3);
-    ddfda(3,1) = ddfda(1,3);
-    ddfda(3,2) = ddfda(2,3);
 
-    return ddfda;
+    return ddf;
 }
 
 /**
