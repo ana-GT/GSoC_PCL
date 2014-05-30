@@ -104,7 +104,7 @@ bool minimizer::minimize() {
     int iter = 0;
     Eigen::VectorXd oldParams;
 
-    mParams << 1.0, 1.0, 1.0, 1.0, 1.0;
+    mParams << 1.0, 1.0, 1.0, 0.5, 1.3;
     std::cout << "Initial guess for coefficients: "<< mParams.transpose() << std::endl;
 
     do {
@@ -167,9 +167,12 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
 	      &x,&y, &z, jac );
 
 	for( int n = 0; n < 5; ++n ) {
-	    df(n) += jac[n];	
+		if( jac[n] != jac[n] ) {
+		    std::cout << "[Jacobian] NAN value in ("<<n<<")"<< std::endl;
+		} else {
+	    	df(n) += jac[n];	
+		}
 	}
-
     }
     
     return df;
@@ -215,8 +218,7 @@ Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 	for( int m = 0; m < 5; ++m ) {
 	    for( int n = 0; n < 5; ++n ) {
 		if( hes[ind] != hes[ind] ) {
-		    ddf(m,n) += 0;
-		    //std::cout << "NAN value "<< std::endl;
+		    std::cout << "[Hessian] NAN value in ("<< m<<", "<<n <<")"<< std::endl;
 		} else {
 		    ddf(m,n) += hes[ind];
 		}

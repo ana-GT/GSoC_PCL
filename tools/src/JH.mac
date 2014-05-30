@@ -2,7 +2,7 @@
 /* Jacobian and Hessian  */
 /* ===================== */
 load(f90);
-SQEq : ((x/a)^(2.0/e2) + (y/b)^(2.0/e2))^(e2/e1) + (z/c)^(2.0/e1) - 1;
+SQEq : ( ((x/a)^2)^(1.0/e2) + ((y/b)^2)^(1.0/e2))^(e2/e1) + ((z/c)^2)^(1.0/e1) - 1;
 J : jacobian( [SQEq],[a,b,c,e1,e2] )$
 H : hessian( SQEq, [a,b,c,e1,e2] )$
 

@@ -30,6 +30,11 @@ add_library( minimizerDraft src/minimizer.cpp )
 target_link_libraries( minimizerDraft JH ${PCL_LIBRARIES} )
 set_target_properties( minimizerDraft PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib )
 
+# SQ_fitter
+add_library( SQ_fitter src/SQ_fitter.cpp )
+target_link_libraries( SQ_fitter ${PCL_LIBRARIES} )
+set_target_properties( SQ_fitter PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib )
+
 
 # Test
 add_executable( SQ_test tests/SQ_test.cpp )
