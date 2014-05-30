@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
+
 /**
  * @function minimizer
  * @brief Constructor
@@ -17,7 +18,7 @@ minimizer::minimizer() :
     srand( time(NULL) );
 
     mParams.resize(5);
-    mParams << 1.0, 4.5, 3.6, 1.5, 0.5;
+    mParams << 1.0, 4.5, 3.6, 1.5, 1.5;
     mLambda = 0.1;
     mMaxIter = 10000;
     mMinThresh = 0.001;
@@ -40,21 +41,33 @@ void minimizer::generatePoints( int _num,
 				double _a1, double _a2, double _a3,
 				double _e1, double _e2 ) {
 
-    double x, y, z, f;
+    double x, y, z;
 
     mSamples->points.resize(0);
-    mF.resize(0);
     for( int i = 0; i < _num; ++i ) {
 	x = getRand( -1, 1 );
 	y = getRand( -1, 1 );
 	z = getRand( -1, 1 );
 
-	f = mParams(0) + mParams(1)*x*x + mParams(2)*y + mParams(3)*z*z*z + getRand( -0.2, 0.2 );
-
 	mSamples->points.push_back( pcl::PointXYZ(x,y,z) );
-	mF.push_back(f);
+
     }
    
+}
+
+/**
+ * @function loadPoints
+ */
+bool minimizer::loadPoints( std::string _pcdFilename ) {
+    
+    if( pcl::io::loadPCDFile<pcl::PointXYZ>( _pcdFilename.c_str(), *mSamples ) == -1 ) {
+	std::cout <<"\t [ERROR] Could not read file " << std::endl;
+	return false;
+    }
+
+    std::cout << "Loaded "<< mSamples->points.size() << " points" << std::endl;
+    return true;
+    
 }
 
 /**
@@ -84,7 +97,7 @@ void minimizer::visualizePoints() {
  */
 bool minimizer::minimize() {
     
-    Eigen::MatrixXd H; 
+    Eigen::MatrixXd H;  Eigen::MatrixXd J;
     Eigen::MatrixXd dH = Eigen::MatrixXd::Identity(5,5);
 
     // Initialize mA with some value
@@ -97,9 +110,10 @@ bool minimizer::minimize() {
     do {
 	oldParams = mParams;
 	H = ddf( mParams );
+	J = df( mParams );
+
 	for( int i = 0; i < 5; ++i ) { dH(i,i) = H(i,i); }
-	mParams = mParams - (H + mLambda*dH).inverse()*df( mParams );
-	
+	mParams = mParams - (H + mLambda*dH).inverse()*J;
 	iter++;
     } while( iter < mMaxIter && (mParams - oldParams).norm() > mMinThresh );
     
@@ -110,6 +124,8 @@ bool minimizer::minimize() {
     } else {
 	std::cout << "[GOOD] Yes, we did converge in "<< iter << std::endl;
 	std::cout << "Final coefficients: "<< mParams.transpose() << std::endl;
+	std::cout << "J: \n"<< J << std::endl; 
+	std::cout << "H: \n" << H << std::endl;
 	return true;
     }
     
@@ -128,7 +144,7 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
     
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     int i;
-    double* jac;
+    double jac[5];
 
     for( int n = 0; n < 5; ++n ) {
 	df(n) = 0;	
@@ -137,8 +153,18 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
     for( it = mSamples->begin(), i = 0; 
 	 it != mSamples->end(); 
 	 ++it, ++i ) {
-	Jac_( _params(0), _params(1), _params(2), _params(3), _params(4),
-	      it->x, it->y, it->z, jac );
+
+	double a1, a2, a3, e1, e2, x, y, z;
+	a1 =  _params(0); 
+	a2 =  _params(1);
+	a3 =  _params(2);
+	e1 =  _params(3);
+	e2 =  _params(4);
+	x = it->x; y = it->y; z = it->z;
+
+
+	jac_( &a1, &a2, &a3, &e1, &e2,
+	      &x,&y, &z, jac );
 
 	for( int n = 0; n < 5; ++n ) {
 	    df(n) += jac[n];	
@@ -157,12 +183,10 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
 Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 
     Eigen::MatrixXd ddf(5,5); ddf = Eigen::MatrixXd::Zero(5,5);
-    double x, y, z;
-
     
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     int i;
-    double **hes;
+    double hes[5*5];
 
     for( int m = 0; m < 5; ++m ) {
 	for( int n = 0; n < 5; ++n ) {
@@ -171,17 +195,32 @@ Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
     }
 
 
+    double a1, a2, a3, e1, e2, x, y, z;
+    a1 =  _params(0); 
+    a2 =  _params(1);
+    a3 =  _params(2);
+    e1 =  _params(3);
+    e2 =  _params(4);
+    
+    
     for( it = mSamples->begin(), i = 0; 
 	 it != mSamples->end(); 
 	 ++it, ++i ) {
 
-	Hessian_( _params(0), _params(1), _params(2),
-		  _params(3), _params(4),
-		  it->x, it->y, it->z, hes );
-
+	x = it->x; y = it->y; z = it->z;
+	hessian_( &a1, &a2, &a3, &e1, &e2,
+		  &x, &y, &z, hes );
+	
+	int ind = 0;
 	for( int m = 0; m < 5; ++m ) {
 	    for( int n = 0; n < 5; ++n ) {
-		ddf(m,n) += hes[m][n];
+		if( hes[ind] != hes[ind] ) {
+		    ddf(m,n) += 0;
+		    //std::cout << "NAN value "<< std::endl;
+		} else {
+		    ddf(m,n) += hes[ind];
+		}
+		ind++;
 	    }
 	}
 

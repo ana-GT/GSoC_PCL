@@ -1,8 +1,7 @@
 # CMake for helper tools in SQ project
-project( tools )
+project( tools Fortran CXX )
 
-enable_language( Fortran )
-set( CMAKE_Fortran_FLAGS "-c" )
+set( CMAKE_Fortran_FLAGS "-c -g " )
 
 # PCL
 find_package( PCL )
@@ -38,11 +37,7 @@ target_link_libraries( SQ_test SQ_sampler ${PCL_LIBRARIES} )
 set_target_properties( SQ_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
 # Minimizer test
-add_library( minimizer tests/minimizer.cpp )
-target_link_libraries( minimizer ${PCL_LIBRARIES} )
-set_target_properties( minimizer PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib )
-
-add_executable( minimizeTest tests/minimizeTest.cpp )
-target_link_libraries( minimizeTest minimizer ${PCL_LIBRARIES} )
-set_target_properties( minimizeTest PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+add_executable( minimizeDraftTest tests/minimizeDraftTest.cpp src/minimizer.cpp )
+target_link_libraries( minimizeDraftTest JH ${PCL_LIBRARIES}  )
+set_target_properties( minimizeDraftTest PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
