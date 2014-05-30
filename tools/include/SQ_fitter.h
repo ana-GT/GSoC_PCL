@@ -17,7 +17,10 @@ class SQ_fitter {
     ~SQ_fitter();
     bool SQFitting( const pcl::PointCloud<PointT> &_cloud );
     
-    bool initialization();
+    double initialize( const pcl::PointCloud<PointT> &_cloud );
+    pcl::PointCloud<PointT> downsample( const pcl::PointCloud<PointT> _cloud,
+					double _voxelSize );
+    double fitting( const pcl::PointCloud<PointT> &_cloud );
 
  private:
 

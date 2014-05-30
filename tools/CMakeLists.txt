@@ -35,6 +35,12 @@ add_library( SQ_fitter src/SQ_fitter.cpp )
 target_link_libraries( SQ_fitter ${PCL_LIBRARIES} )
 set_target_properties( SQ_fitter PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib )
 
+# SQ_fitter test
+add_executable( SQFitter_test tests/SQ_fitter_test.cpp )
+target_link_libraries( SQFitter_test SQ_fitter ${PCL_LIBRARIES}  )
+set_target_properties( SQFitter_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+
+
 
 # Test
 add_executable( SQ_test tests/SQ_test.cpp )
