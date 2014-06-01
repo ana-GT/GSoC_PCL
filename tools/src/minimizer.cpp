@@ -77,7 +77,7 @@ void minimizer::visualizePoints() {
 
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     viewer->setBackgroundColor (0, 0, 0);
-    viewer->addCoordinateSystem (1.0, "main", 0);
+    viewer->addCoordinateSystem (1.0, 0);
     viewer->initCameraParameters ();
     
     // 2. Visualize the clouds
