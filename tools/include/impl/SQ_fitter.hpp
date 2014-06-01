@@ -7,6 +7,7 @@
 
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/common/centroid.h>
 
 /**
  * @function SQ_fitter
@@ -74,7 +75,13 @@ bool SQ_fitter<PointT>::SQFitting( const PointCloudPtr &_cloud,
 template<typename PointT>
 double SQ_fitter<PointT>::initialize( const PointCloudPtr &_cloud ) {
 
+  // Find the bounding box for an initial ellipsoid shape approximation
+  Eigen::Vector4f centroid;
+  pcl::compute3DCentroid( *_cloud,
+			  centroid );
+
     // Find the SVD decomposition of the pointcloud
+  
     // Find the pointcloud axis along these 
 
   return 0;
