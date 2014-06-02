@@ -3,9 +3,11 @@
  */
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/visualization/cloud_viewer.h>
 #include <iostream>
 
 #include "SQ_sampler.h"
+#include "SQ_params.h"
 
 /**
  * @function main
@@ -15,29 +17,28 @@ int main( int argc, char* argv[] ) {
     // Create the sampler class
     SQ_sampler sqs;
 
-    // Store superellipsoid
-    pcl::io::savePCDFileASCII( "se_cloud_01.pcd", 
-			       sqs.getSuperEllipse( 1.5, 0.5, 0.1 ) );
 
-    pcl::io::savePCDFileASCII( "se_pilu_cloud_01.pcd", 
-			       sqs.getSuperEllipse_Pilu_Fisher( 1.5, 0.5, 0.1 ) );
+    // Sample SQ naive
+    SQ_params par; 
+    par.a = 1.5; par.b = 1.0; par.c = 2.75;
+    par.e1 = 0.8; par.e2 = 0.8;
+    par.Tf = Eigen::Isometry3d::Identity();
+    par.Tf.translation() = Eigen::Vector3d( 0.5, 0.5, 0.8 );
+    Eigen::Matrix3d rot;
+    rot << 1,0,0, 0,0.7, 0.7, 0,-0.7, 0.7; 
+    par.Tf.linear() = rot;
 
-    pcl::io::savePCDFileASCII( "se_pilu_cloud_02.pcd", 
-			       sqs.getSuperEllipse_Pilu_Fisher( 1.5, 1.5, 0.2 ) );
-
-    pcl::io::savePCDFileASCII( "se_cloud_05.pcd", 
-			       sqs.getSuperEllipse( 1.5, 0.5, 0.5 ) );
-
-    pcl::io::savePCDFileASCII( "se_cloud_10.pcd", 
-			       sqs.getSuperEllipse( 1.5, 0.5, 1.0 ) );
-
-    pcl::io::savePCDFileASCII( "se_cloud_20.pcd", 
-			       sqs.getSuperEllipse( 1.5, 0.5, 2.0 ) );
-
-    pcl::io::savePCDFileASCII( "sq_cloud_1_01.pcd",
-			       sqs.getSuperQuadric( 1.0, 1.0, 1.0, 0.1, 1, 10000 ) );
-
-
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
+    cloud = sqs.sampleSQ_naive( par );
+    
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer( new pcl::visualization::PCLVisualizer("3DViewer") );
+    viewer->addCoordinateSystem(1.0, "main", 0);
+    viewer->addPointCloud( cloud, "naive", 0 );
+    while( !viewer->wasStopped() ) {
+	viewer->spinOnce(100);
+	boost::this_thread::sleep( boost::posix_time::microseconds(100000) );
+    }
+    
     std::cout <<"Finished SQ_test.cpp "<< std::endl;
 
     return 0;

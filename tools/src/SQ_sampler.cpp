@@ -4,6 +4,7 @@
 /*********************************************/
 
 #include "SQ_sampler.h"
+#include <pcl/common/transforms.h>
 
 /**
  * @function SQ_sampler
@@ -161,58 +162,58 @@ double SQ_sampler::diff_theta( const double &_D,
 
 
 /**
- * @function getSuperQuadric
+ * @function sampleSQ_naive
+ * @brief Sample n \in [-PI/2, PI/2] and w \in [-PI,PI>
  */
-pcl::PointCloud<pcl::PointXYZ> SQ_sampler::getSuperQuadric( const double &_a1,
-							    const double &_a2,
-							    const double &_a3,
-							    const double &_e1,
-							    const double &_e2,
-							    const int &_numSamples ) {
+pcl::PointCloud<pcl::PointXYZ>::Ptr SQ_sampler::sampleSQ_naive( SQ_params _par ) {
 
-    pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
+    pcl::PointCloud<pcl::PointXYZ> cloud_raw;
 
-    double n; double w;    
-    double dn; double dw;
-    int num_ni = 100;
-    int num_wi = 100;
-    double x, y, z;
-    double cn, sn, cw, sw;
+    double cn, sn, sw, cw;
+    double n, w;
+    int num_n, num_w; double dn, dw;
 
-    // For
-    n = -0.5*M_PI;
-    w = -1*M_PI;
+    dn = 5.0*M_PI / 180.0;
+    dw = 5.0*M_PI / 180.0;
+    num_n = (int)( M_PI / dn );
+    num_w = (int)( 2*M_PI / dw );
 
-    dn = M_PI / num_ni;
-    dw = 2.0*M_PI / num_wi;
-    
-    for( int ni = 0; ni < num_ni; ++ni ) {	
+    double a, b, c, e1, e2;
+    a = _par.a; b = _par.b; c = _par.c; e1 = _par.e1; e2 = _par.e2;
+
+    n = -M_PI / 2.0;
+    for( int i = 0; i < num_n; ++i ) {
 	n += dn;
 	cn = cos(n); sn = sin(n);
+	w = -M_PI;
 
-	w = -1*M_PI;
-	for( int wi = 0; wi < num_wi; ++wi ) {
+	for( int j = 0; j < num_w; ++j ) {
 	    w += dw;
-	    
 	    cw = cos(w); sw = sin(w);
-	    x = _a1*pow( fabs(cn), _e1 )*pow( fabs(cw), _e2 );
-	    y = _a2*pow( fabs(cn), _e1 )*pow( fabs(sw), _e2 );
-	    z = _a3*pow( fabs(sn), _e1 );
+	    pcl::PointXYZ p;
+	    p.x = a*pow( fabs(cn), e1 )*pow( fabs(cw), e2 );
+	    p.y = b*pow( fabs(cn), e1 )*pow( fabs(sw), e2 );
+	    p.z = c*pow( fabs(sn), e1 );
 
-	    if( cn*cw < 0 ) { x = -1*x; }
-	    if( cn*sw < 0 ) { y = -1*y; }
-	    if( sn < 0 ) { z = -1*z; }
+	    // Assign signs, if needed
+	    if( cn*cw < 0 ) { p.x = -p.x; }
+	    if( cn*sw < 0 ) { p.y = -p.y; }
+	    if( sn < 0 ) { p.z = -p.z; }
 
-	    pcl::PointXYZ p;	    
-	    p.x = x; p.y = y; p.z = z;
-	    cloud.points.push_back( p );
+	    // Store
+	    cloud_raw.points.push_back(p);	    
 	}
-	
     }
-    cloud.width = cloud.points.size();
-    cloud.height = 1;
 
+    std::cout << "Final n: "<< n << std::endl;
+    std::cout << "Final w: "<< w << std::endl;
 
+    // Apply transform
+    pcl::transformPointCloud<pcl::PointXYZ, double>( cloud_raw,
+						     *cloud,
+						     _par.Tf );
+    
     return cloud;
 }
 
