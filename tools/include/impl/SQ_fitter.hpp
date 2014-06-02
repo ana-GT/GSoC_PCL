@@ -7,7 +7,9 @@
 
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
-#include <pcl/common/centroid.h>
+
+#include <pcl/features/moment_of_inertia_estimation.h>
+#include <pcl/visualization/cloud_viewer.h>
 
 /**
  * @function SQ_fitter
@@ -76,13 +78,42 @@ template<typename PointT>
 double SQ_fitter<PointT>::initialize( const PointCloudPtr &_cloud ) {
 
   // Find the bounding box for an initial ellipsoid shape approximation
-  Eigen::Vector4f centroid;
-  pcl::compute3DCentroid( *_cloud,
-			  centroid );
+    pcl::MomentOfInertiaEstimation<PointT> estimator;
+    estimator.setInputCloud( _cloud );
+    estimator.compute();
 
-    // Find the SVD decomposition of the pointcloud
-  
-    // Find the pointcloud axis along these 
+    PointT minPt_OBB;
+    PointT maxPt_OBB;
+    PointT center_OBB;
+    Eigen::Matrix3f rotMat_OBB;
+    Eigen::Vector3f axisX0, axisY0, axisZ0;
+    double a0, b0, c0;
+
+    estimator.getOBB( minPt_OBB, maxPt_OBB, 
+		      center_OBB, rotMat_OBB );
+    
+    estimator.getEigenVectors( axisX0, axisY0, axisZ0 );
+    a0 = (maxPt_OBB.x - minPt_OBB.x)*0.5;
+    b0 = (maxPt_OBB.y - minPt_OBB.y)*0.5;
+    c0 = (maxPt_OBB.z - minPt_OBB.z)*0.5;
+    std::cout << "Rot mat: \n"<< rotMat_OBB<<std::endl;
+    std::cout << "Ev1: "<<axisX0.transpose() << std::endl;
+    std::cout << "Ev2: "<<axisY0.transpose() << std::endl;
+    std::cout << "Ev3: "<<axisZ0.transpose() << std::endl;
+
+    // [DEBUG] Visualize bounding box
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer( new pcl::visualization::PCLVisualizer("3DViewer") );
+    viewer->addCoordinateSystem(1.0, "main", 0);
+    viewer->addPointCloud( _cloud, "input cloud"  );
+    viewer->addCube( Eigen::Vector3f(center_OBB.x, center_OBB.y, center_OBB.z),
+		     Eigen::Quaternionf(rotMat_OBB),
+		     a0*2, b0*2, c0*2, "OBB");
+    
+
+    while( !viewer->wasStopped() ) {
+	viewer->spinOnce(100);
+	boost::this_thread::sleep( boost::posix_time::microseconds(100000) );
+    }
 
   return 0;
 }
