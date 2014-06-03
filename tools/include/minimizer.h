@@ -9,6 +9,8 @@
 
 #include "SQ_utils.h"
 
+#include "matlab_equations.h"
+
 // Helpers
 double getRand( double _min, double _max );
 
