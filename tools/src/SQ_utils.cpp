@@ -4,6 +4,7 @@
 #include "SQ_utils.h"
 #include <iostream>
 
+
 /**
  * @function param2Transf 
  * @brief Read a SQ_params instance and get the Tf 

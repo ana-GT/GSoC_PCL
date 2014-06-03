@@ -3,8 +3,12 @@
  */
 #pragma once
 
-void jac_MATLAB( double a, double b, double c, double e1, double e2, double px, double py, double pz, double ra, double pa, double ya, double x, double y, double z, double Jac[] );
+#include <Eigen/Core>
 
-void hess_MATLAB( double a, double b, double c, double e1, double e2, double px, double py, double pz, double ra, double pa, double ya, double x, double y, double z, double Hess[][11] );
+Eigen::VectorXd jac_MATLAB( const Eigen::VectorXd &_params, 
+			    double x, double y, double z );
 
-double error_MATLAB( double a, double b, double c, double e1, double e2, double px, double py, double pz, double ra, double pa, double ya, double x, double y, double z ); 
+void hess_MATLAB( const Eigen::VectorXd &_params, double x, double y, double z, double A0[][11] );
+
+double error_MATLAB( const Eigen::VectorXd &_params, 
+		     double x, double y, double z ); 

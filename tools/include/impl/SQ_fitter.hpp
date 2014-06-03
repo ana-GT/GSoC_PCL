@@ -189,23 +189,14 @@ double SQ_fitter<PointT>::error( const PointCloudPtr &_cloud,
 
     double sum; double err;
     
-    double a,b,c, e1,e2;
-    double px,py,pz; double ra,pa,ya;
     double x,y,z;
     pcl::PointXYZ p;
 
-    a = _par.a; b = _par.b; c = _par.c;
-    e1 = _par.e1; e2 = _par.e2; 
-    px = _par.px; py = _par.py; pz = _par.pz;
-    ra = _par.ra; pa = _par.pa; ya = _par.ya;
-
-
     sum = 0;
     for( int i = 0; i < _cloud->points.size(); ++i ) {
-
 	p = _cloud->points[i];
 	x = p.x; y = p.y; z = p.z;
-    err = error_MATLAB( a, b, c, e1, e2, px, py, pz, ra, pa, ya, x, y, z );
+	err = error_MATLAB( params2Vec(_par), x, y, z );
 	sum += err;
     }
 

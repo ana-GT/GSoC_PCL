@@ -121,8 +121,15 @@ bool minimizer::minimize( const SQ_params &_par_in,
 
 	for( int i = 0; i < mNumParams; ++i ) { dH(i,i) = H(i,i); }
 	mParams = mParams - (H + mLambda*dH).inverse()*J;
+	//clamp(mParams);
 	iter++;
 	error = (mParams - oldParams).norm();
+	for( int i = 0; i < mNumParams; ++i ) {
+	    if( mParams(i) != mParams(i) ) {
+		std::cout << "Param "<<i<<" is NAN. Return false"<< std::endl;
+		return false;
+	    }
+	}
 
 	std::cout << "Iter: "<< iter << " with error: "<< error << std::endl;
 
@@ -153,37 +160,29 @@ bool minimizer::minimize( const SQ_params &_par_in,
  */
 Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
     
-    Eigen::VectorXd df(mNumParams); df = Eigen::VectorXd::Zero(mNumParams);
+    Eigen::VectorXd df = Eigen::VectorXd::Zero(mNumParams);
     double x, y, z;
     
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     int i;
-    double jac[mNumParams];
+    Eigen::VectorXd jac;
 
-    for( int n = 0; n < mNumParams; ++n ) {
-	df(n) = 0;	
-    }
 
-    for( it = mSamples->begin(), i = 0; 
-	 it != mSamples->end(); 
-	 ++it, ++i ) {
-
-	double x, y, z;
+    for( it = mSamples->begin(); it != mSamples->end(); ++it ) {
+	
 	x = it->x; y = it->y; z = it->z;
-
-    jac_MATLAB( _params(0), _params(1), _params(2), _params(3), _params(4), _params(5), _params(6), _params(7), _params(8), _params(9), _params(10), x, y, z, jac ); 
+	
+	jac = jac_MATLAB( _params, x, y, z ); 
 
 	for( int n = 0; n < mNumParams; ++n ) {
-		if( jac[n] != jac[n] ) {
-		    std::cout << "[Jacobian] NAN value in ("<<n<<")"<< std::endl;
-		} else {
-	    	df(n) += jac[n];	
-		}
+	    if( jac[n] != jac[n] ) {
+		std::cout << "[Jacobian] NAN value in ("<<n<<")"<< std::endl;
+	    } 
 	}
+	df += jac;
     }
     
-    return df;
-    
+    return df;    
 }
 
 /**
@@ -194,45 +193,31 @@ Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 
     Eigen::MatrixXd ddf = Eigen::MatrixXd::Zero(mNumParams,mNumParams);
     
-    pcl::PointCloud<pcl::PointXYZ>::iterator it;
-    int i;
-//    double hes[mNumParams*mNumParams];
-	double hes[11][11];
+    pcl::PointCloud<pcl::PointXYZ>::iterator it;    
+    double hest[11][11];
 
-    for( int m = 0; m < mNumParams; ++m ) {
-	for( int n = 0; n < mNumParams; ++n ) {
-	    ddf(m,n) = 0;
-	}
-    }
-
-	double x, y, z;
-
+    double x, y, z;
         
-    for( it = mSamples->begin(), i = 0; 
-	 it != mSamples->end(); 
-	 ++it, ++i ) {
+    for( it = mSamples->begin(); it != mSamples->end(); ++it ) {
 
 	x = it->x; y = it->y; z = it->z;
-
-	hess_MATLAB(  _params(0), _params(1), _params(2), _params(3), _params(4), _params(5), _params(6), _params(7), _params(8), _params(9), _params(10),x,y,z,hes );
+	hess_MATLAB( _params, x, y, z, 
+		     hest );
 
 	int ind = 0;
 	for( int m = 0; m < mNumParams; ++m ) {
 	    for( int n = 0; n < mNumParams; ++n ) {
-
-			if( hes[m][n] != hes[m][n] ) {
-		    	std::cout << "[Hessian] NAN value in ("<< m<<", "<<n <<")"<< std::endl;
-			} else {
-		    	ddf(m,n) += hes[m][n];
-			}
-
-
+		
+		if( hest[m][n] != hest[m][n] ) {
+		    std::cout << "[Hessian] NAN value in ("<< m<<", "<<n <<")"<< " with params:"<< _params.transpose() << " and xyz:"<<x<<", "<<y<<", "<<z<< std::endl;
+		} else {
+		    ddf(m,n) += hest[m][n];
+		}
 	    }
 	}
-
+	
     }
-
-
+    
     return ddf;
 }
 
