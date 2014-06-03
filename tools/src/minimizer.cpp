@@ -3,6 +3,7 @@
  * @brief Mock minimizer for fi =a0 +a1*xi^2 + a2*yi + a3*zi^3 
  */
 #include "minimizer.h"
+#include "SQ_sampler.h"
 #include <iostream>
 #include <time.h>
 #include <stdlib.h>
@@ -17,8 +18,9 @@ minimizer::minimizer() :
     mSamples( new pcl::PointCloud<pcl::PointXYZ> ) {
     srand( time(NULL) );
 
-    mParams.resize(5);
-    mParams << 1.0, 4.5, 3.6, 1.5, 1.5;
+    // 11 Parameters: a,b,c, e1,e2, px,py,pz, ra,pa,ya
+    mParams.resize(11);
+    mParams << 0.5,0.5,0.5, 0.5,0.5, 0,0,0, 0,0,0;
     mLambda = 0.1;
     mMaxIter = 10000;
     mMinThresh = 0.001;
@@ -38,21 +40,10 @@ minimizer::~minimizer() {
  * @function generatePoints
  */
 void minimizer::generatePoints( int _num,
-				double _a1, double _a2, double _a3,
-				double _e1, double _e2 ) {
+				SQ_params _par ) {
 
-    double x, y, z;
-
-    mSamples->points.resize(0);
-    for( int i = 0; i < _num; ++i ) {
-	x = getRand( -1, 1 );
-	y = getRand( -1, 1 );
-	z = getRand( -1, 1 );
-
-	mSamples->points.push_back( pcl::PointXYZ(x,y,z) );
-
-    }
-   
+    SQ_sampler sqs;
+    mSamples = sqs.sampleSQ_naive( _par );   
 }
 
 /**
@@ -95,16 +86,17 @@ void minimizer::visualizePoints() {
 /**
  * @function minimize
  */
-bool minimizer::minimize() {
+bool minimizer::minimize( SQ_params _par ) {
     
     Eigen::MatrixXd H;  Eigen::MatrixXd J;
-    Eigen::MatrixXd dH = Eigen::MatrixXd::Identity(5,5);
+    Eigen::MatrixXd dH = Eigen::MatrixXd::Identity(11,11);
 
     // Initialize mA with some value
     int iter = 0;
     Eigen::VectorXd oldParams;
 
-    mParams << 1.0, 1.0, 1.0, 0.5, 1.3;
+    mParams << params2Vec( _par );
+
     std::cout << "Initial guess for coefficients: "<< mParams.transpose() << std::endl;
 
     do {
@@ -144,7 +136,7 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
     
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     int i;
-    double jac[5];
+    double jac[11];
 
     for( int n = 0; n < 5; ++n ) {
 	df(n) = 0;	
@@ -154,19 +146,29 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
 	 it != mSamples->end(); 
 	 ++it, ++i ) {
 
-	double a1, a2, a3, e1, e2, x, y, z;
-	a1 =  _params(0); 
-	a2 =  _params(1);
-	a3 =  _params(2);
-	e1 =  _params(3);
-	e2 =  _params(4);
+	double a1, a2, a3, e1, e2;
+	double px, py, pz, ra, pa, ya;
+	double x, y, z;
+	a1 = _params(0); 
+	a2 = _params(1);
+	a3 = _params(2);
+	e1 = _params(3);
+	e2 = _params(4);
+	px = _params(5);
+	py = _params(6);
+	pz = _params(7);
+	ra = _params(8);
+	pa = _params(9);
+	ya = _params(10);
+
 	x = it->x; y = it->y; z = it->z;
 
 
 	jac_( &a1, &a2, &a3, &e1, &e2,
+	      &px, &py, &pz, &ra, &pa, &ya,
 	      &x,&y, &z, jac );
 
-	for( int n = 0; n < 5; ++n ) {
+	for( int n = 0; n < 11; ++n ) {
 		if( jac[n] != jac[n] ) {
 		    std::cout << "[Jacobian] NAN value in ("<<n<<")"<< std::endl;
 		} else {
@@ -197,26 +199,34 @@ Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 	}
     }
 
+	double a1, a2, a3, e1, e2;
+	double px, py, pz, ra, pa, ya;
+	double x, y, z;
+	a1 = _params(0); 
+	a2 = _params(1);
+	a3 = _params(2);
+	e1 = _params(3);
+	e2 = _params(4);
+	px = _params(5);
+	py = _params(6);
+	pz = _params(7);
+	ra = _params(8);
+	pa = _params(9);
+	ya = _params(10);
 
-    double a1, a2, a3, e1, e2, x, y, z;
-    a1 =  _params(0); 
-    a2 =  _params(1);
-    a3 =  _params(2);
-    e1 =  _params(3);
-    e2 =  _params(4);
-    
-    
+        
     for( it = mSamples->begin(), i = 0; 
 	 it != mSamples->end(); 
 	 ++it, ++i ) {
 
 	x = it->x; y = it->y; z = it->z;
 	hessian_( &a1, &a2, &a3, &e1, &e2,
+		  &px, &py, &pz, &ra, &pa, &ya,
 		  &x, &y, &z, hes );
 	
 	int ind = 0;
-	for( int m = 0; m < 5; ++m ) {
-	    for( int n = 0; n < 5; ++n ) {
+	for( int m = 0; m < 11; ++m ) {
+	    for( int n = 0; n < 11; ++n ) {
 		if( hes[ind] != hes[ind] ) {
 		    std::cout << "[Hessian] NAN value in ("<< m<<", "<<n <<")"<< std::endl;
 		} else {

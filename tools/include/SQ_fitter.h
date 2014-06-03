@@ -4,6 +4,7 @@
 #pragma once
 
 #include <pcl/pcl_base.h>
+#include "SQ_params.h"
 
 /**
  * @class SQ_fitter
@@ -36,7 +37,7 @@ class SQ_fitter {
     int N_; /**< Number of scales */
     double thresh_; /**< Error threshold */
     
-
+    SQ_params par0_;
 };
 
 

@@ -4,6 +4,7 @@
 /*********************************************/
 
 #include "SQ_sampler.h"
+#include "SQ_utils.h"
 #include <pcl/common/transforms.h>
 
 /**
@@ -206,13 +207,10 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr SQ_sampler::sampleSQ_naive( SQ_params _par )
 	}
     }
 
-    std::cout << "Final n: "<< n << std::endl;
-    std::cout << "Final w: "<< w << std::endl;
-
     // Apply transform
     pcl::transformPointCloud<pcl::PointXYZ, double>( cloud_raw,
 						     *cloud,
-						     _par.Tf );
+						     param2Transf(_par) );
     
     return cloud;
 }

@@ -7,19 +7,33 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
+#include "SQ_utils.h"
+
 // Helpers
 double getRand( double _min, double _max );
 
 extern "C" {
     void jac_( double *a, double *b, double *c, 
 	       double *e1, double *e2,
-	      double *x, double *y, double *z, 
-	      double *J );
+	       double *px, double *py, double *pz,
+	       double *ra, double *pa, double *ya,
+	       double *x, double *y, double *z, 
+	       double *J );
 
     void hessian_( double *a, double *b, double *c, 
 		   double *e1, double *e2,
+		   double *px, double *py, double *pz,
+		   double *ra, double *pa, double *ya,
 		   double *x, double *y, double *z, 
 		   double *H );
+
+    void error_( double *a, double *b, double *c, 
+		 double *e1, double *e2,
+		 double *px, double *py, double *pz,
+		 double *ra, double *pa, double *ya,
+		 double *x, double *y, double *z, 
+		 double *er );
+
 }
 
 /**
@@ -32,11 +46,10 @@ class minimizer {
     ~minimizer();
 
     void generatePoints( int _num,
-			 double _a1, double _a2, double _a3,
-			 double _e1, double _e2 );
+			 SQ_params _par );
     bool loadPoints( std::string _pcdFilename );
     void visualizePoints();
-    bool minimize();
+    bool minimize( SQ_params _par );
     Eigen::VectorXd df( Eigen::VectorXd _params );
     Eigen::MatrixXd ddf( Eigen::VectorXd _params ); 
     int getNumSamples() { return mSamples->points.size(); }

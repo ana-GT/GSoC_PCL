@@ -4,7 +4,8 @@
 #pragma once
 
 #include "SQ_fitter.h"
-
+#include "SQ_sampler.h"
+#include "SQ_utils.h"
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 
@@ -91,24 +92,42 @@ double SQ_fitter<PointT>::initialize( const PointCloudPtr &_cloud ) {
 
     estimator.getOBB( minPt_OBB, maxPt_OBB, 
 		      center_OBB, rotMat_OBB );
-    
-    estimator.getEigenVectors( axisX0, axisY0, axisZ0 );
-    a0 = (maxPt_OBB.x - minPt_OBB.x)*0.5;
-    b0 = (maxPt_OBB.y - minPt_OBB.y)*0.5;
-    c0 = (maxPt_OBB.z - minPt_OBB.z)*0.5;
-    std::cout << "Rot mat: \n"<< rotMat_OBB<<std::endl;
-    std::cout << "Ev1: "<<axisX0.transpose() << std::endl;
-    std::cout << "Ev2: "<<axisY0.transpose() << std::endl;
-    std::cout << "Ev3: "<<axisZ0.transpose() << std::endl;
 
-    // [DEBUG] Visualize bounding box
+    // Same info as in rotMat_OBB (or it should be)
+    //estimator.getEigenVectors( axisX0, axisY0, axisZ0 );
+    par0_.a = (maxPt_OBB.x - minPt_OBB.x)*0.5;
+    par0_.b = (maxPt_OBB.y - minPt_OBB.y)*0.5;
+    par0_.c = (maxPt_OBB.z - minPt_OBB.z)*0.5;
+    par0_.e1 = 0.5; par0_.e2 = 0.5;
+
+    Eigen::Isometry3d Tf = Eigen::Isometry3d::Identity();
+    Tf.translation() = Eigen::Vector3d(center_OBB.x, center_OBB.y, center_OBB.z );
+    Tf.linear() << (double)rotMat_OBB(0,0), (double)rotMat_OBB(0,1), (double)rotMat_OBB(0,2), 
+	(double)rotMat_OBB(1,0), (double)rotMat_OBB(1,1), (double)rotMat_OBB(1,2), 
+	(double)rotMat_OBB(2,0), (double)rotMat_OBB(2,1), (double)rotMat_OBB(2,2);
+   
+    transf2Params( Tf, par0_ );
+
+    
+    // [DEBUG] Visualize 
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer( new pcl::visualization::PCLVisualizer("3DViewer") );
     viewer->addCoordinateSystem(1.0, "main", 0);
-    viewer->addPointCloud( _cloud, "input cloud"  );
+
+    // [DEBUG] Visualize input pointcloud
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col(_cloud, 0,255,0);
+    viewer->addPointCloud( _cloud, col, "input cloud"  );
+
+    // [DEBUG] Visualize bounding box
     viewer->addCube( Eigen::Vector3f(center_OBB.x, center_OBB.y, center_OBB.z),
 		     Eigen::Quaternionf(rotMat_OBB),
-		     a0*2, b0*2, c0*2, "OBB");
+		     par0_.a*2, par0_.b*2, par0_.c*2, "OBB");
     
+    // [DEBUG] Visualize initial ellipsoid
+    SQ_sampler sqs;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr se0( new pcl::PointCloud<pcl::PointXYZ>() );
+    se0 = sqs.sampleSQ_naive( par0_ );
+    viewer->addPointCloud( se0, "Ellipsoid 0" );
+
 
     while( !viewer->wasStopped() ) {
 	viewer->spinOnce(100);

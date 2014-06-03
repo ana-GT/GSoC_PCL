@@ -8,6 +8,7 @@
 
 #include "SQ_sampler.h"
 #include "SQ_params.h"
+#include "SQ_utils.h"
 
 /**
  * @function main
@@ -22,11 +23,14 @@ int main( int argc, char* argv[] ) {
     SQ_params par; 
     par.a = 1.5; par.b = 1.0; par.c = 2.75;
     par.e1 = 0.8; par.e2 = 0.8;
-    par.Tf = Eigen::Isometry3d::Identity();
-    par.Tf.translation() = Eigen::Vector3d( 0.5, 0.5, 0.8 );
+    
+    Eigen::Isometry3d Tf = Eigen::Isometry3d::Identity();
+    Tf.translation() = Eigen::Vector3d( 0.5, 0.5, 0.8 );
     Eigen::Matrix3d rot;
     rot << 1,0,0, 0,0.7, 0.7, 0,-0.7, 0.7; 
-    par.Tf.linear() = rot;
+    Tf.linear() = rot;
+
+    transf2Params( Tf, par );
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
     cloud = sqs.sampleSQ_naive( par );
