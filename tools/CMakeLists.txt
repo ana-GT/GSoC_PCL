@@ -53,23 +53,25 @@ set_target_properties( JH PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR
 # Executable Tests
 # ******************************************************
 
-# Fitting SQ
-#add_executable( fitting_test tests/fitting_test.cpp )
-#target_link_libraries( fitting_test SQ_fitter SQ_sampler minimizer JH ${PCL_LIBRARIES}  )
-#set_target_properties( fitting_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
-
-add_executable( fitting_test2 tests/fitting_test2.cpp )
-target_link_libraries( fitting_test2  SQ_fitter minimizer JH ${PCL_LIBRARIES}  )
-set_target_properties( fitting_test2 PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+# Minimizer test
+add_executable( minimizer_test tests/minimizer_test.cpp )
+target_link_libraries( minimizer_test minimizer_SQ JH ${PCL_LIBRARIES}  )
+set_target_properties( minimizer_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
 # Sample
 add_executable( sampler_test tests/sampler_test.cpp )
 target_link_libraries( sampler_test SQ_sampler SQ_utils ${PCL_LIBRARIES} )
 set_target_properties( sampler_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
-# Minimizer test
-add_executable( minimizer_test tests/minimizer_test.cpp )
-target_link_libraries( minimizer_test minimizer_SQ JH ${PCL_LIBRARIES}  )
-set_target_properties( minimizer_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+
+# Fitting SQ
+#add_executable( fitting_test tests/fitting_test.cpp )
+#target_link_libraries( fitting_test SQ_fitter SQ_sampler minimizer JH ${PCL_LIBRARIES}  )
+#set_target_properties( fitting_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+
+#add_executable( fitting_test2 tests/fitting_test2.cpp )
+#target_link_libraries( fitting_test2  SQ_fitter minimizer JH ${PCL_LIBRARIES}  )
+#set_target_properties( fitting_test2 PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+
 
 # ******************************************************

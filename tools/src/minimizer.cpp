@@ -18,12 +18,13 @@ minimizer::minimizer() :
     mSamples( new pcl::PointCloud<pcl::PointXYZ> ) {
     srand( time(NULL) );
 
-    // 11 Parameters: a,b,c, e1,e2, px,py,pz, ra,pa,ya
-    mParams.resize(11);
-    mParams << 0.5,0.5,0.5, 0.5,0.5, 0,0,0, 0,0,0;
     mLambda = 0.1;
     mMaxIter = 1000;
-    mMinThresh = 0.001;
+    mMinThresh = 0.005;
+
+    // 11 Parameters: a,b,c, e1,e2, px,py,pz, ra,pa,ya
+    mNumParams = 11;
+    mParams.resize(mNumParams);
 }
 
 /**
@@ -32,18 +33,6 @@ minimizer::minimizer() :
  */
 minimizer::~minimizer() {
 
-}
-
-
-
-/**
- * @function generatePoints
- */
-void minimizer::generatePoints( int _num,
-				SQ_params _par ) {
-
-    SQ_sampler sqs;
-    mSamples = sqs.sampleSQ_naive( _par );   
 }
 
 /**
@@ -56,7 +45,7 @@ bool minimizer::loadPoints( std::string _pcdFilename ) {
 	return false;
     }
 
-    std::cout << "Loaded "<< mSamples->points.size() << " points" << std::endl;
+    std::cout << "\t [GOOD] Loaded "<< mSamples->points.size() << " points" << std::endl;
     return true;
     
 }
@@ -67,9 +56,8 @@ bool minimizer::loadPoints( std::string _pcdFilename ) {
 bool minimizer::loadPoints( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud ) {
     
     mSamples = _cloud;
-    std::cout << "Loaded "<< mSamples->points.size() << " points" << std::endl;
-    return true;
-    
+    std::cout << "\t [GOOD] Loaded "<< mSamples->points.size() << " points" << std::endl;
+    return true;    
 }
 
 
@@ -78,6 +66,7 @@ bool minimizer::loadPoints( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud ) 
  */
 void minimizer::visualizePoints() {
 
+    std::cout << "\t [INFO] Visualizing input cloud to minimizer"<< std::endl;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     viewer->setBackgroundColor (0, 0, 0);
     viewer->addCoordinateSystem (1.0, 0);
@@ -102,12 +91,13 @@ bool minimizer::minimize( const SQ_params &_par_in,
 			  SQ_params &_par_out ) {
     
     Eigen::MatrixXd H;  Eigen::MatrixXd J;
-    Eigen::MatrixXd dH = Eigen::MatrixXd::Identity(11,11);
+    Eigen::MatrixXd dH = Eigen::MatrixXd::Identity( mNumParams, mNumParams );
+    double error;
 
     // Initialize mA with some value
     int iter = 0;
     Eigen::VectorXd oldParams;
-
+    
     mParams << params2Vec( _par_in );
 
     std::cout << "Initial guess for coefficients: "<< mParams.transpose() << std::endl;
@@ -117,10 +107,14 @@ bool minimizer::minimize( const SQ_params &_par_in,
 	H = ddf( mParams );
 	J = df( mParams );
 
-	for( int i = 0; i < 11; ++i ) { dH(i,i) = H(i,i); }
+	for( int i = 0; i < mNumParams; ++i ) { dH(i,i) = H(i,i); }
 	mParams = mParams - (H + mLambda*dH).inverse()*J;
 	iter++;
-    } while( iter < mMaxIter && (mParams - oldParams).norm() > mMinThresh );
+	error = (mParams - oldParams).norm();
+
+	std::cout << "Iter: "<< iter << " with error: "<< error << std::endl;
+
+    } while( iter < mMaxIter && error > mMinThresh );
     
     vec2Param( mParams, _par_out );
     
@@ -147,14 +141,14 @@ bool minimizer::minimize( const SQ_params &_par_in,
  */
 Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
     
-    Eigen::VectorXd df(5); df = Eigen::VectorXd::Zero(5);
+    Eigen::VectorXd df(mNumParams); df = Eigen::VectorXd::Zero(mNumParams);
     double x, y, z;
     
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     int i;
-    double jac[11];
+    double jac[mNumParams];
 
-    for( int n = 0; n < 5; ++n ) {
+    for( int n = 0; n < mNumParams; ++n ) {
 	df(n) = 0;	
     }
 
@@ -184,7 +178,7 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
 	      &px, &py, &pz, &ra, &pa, &ya,
 	      &x,&y, &z, jac );
 
-	for( int n = 0; n < 11; ++n ) {
+	for( int n = 0; n < mNumParams; ++n ) {
 		if( jac[n] != jac[n] ) {
 		    std::cout << "[Jacobian] NAN value in ("<<n<<")"<< std::endl;
 		} else {
@@ -203,14 +197,14 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
  */
 Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 
-    Eigen::MatrixXd ddf(5,5); ddf = Eigen::MatrixXd::Zero(5,5);
+    Eigen::MatrixXd ddf = Eigen::MatrixXd::Zero(mNumParams,mNumParams);
     
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     int i;
-    double hes[5*5];
+    double hes[mNumParams*mNumParams];
 
-    for( int m = 0; m < 5; ++m ) {
-	for( int n = 0; n < 5; ++n ) {
+    for( int m = 0; m < mNumParams; ++m ) {
+	for( int n = 0; n < mNumParams; ++n ) {
 	    ddf(m,n) = 0;
 	}
     }
@@ -241,8 +235,8 @@ Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 		  &x, &y, &z, hes );
 	
 	int ind = 0;
-	for( int m = 0; m < 11; ++m ) {
-	    for( int n = 0; n < 11; ++n ) {
+	for( int m = 0; m < mNumParams; ++m ) {
+	    for( int n = 0; n < mNumParams; ++n ) {
 		if( hes[ind] != hes[ind] ) {
 		    std::cout << "[Hessian] NAN value in ("<< m<<", "<<n <<")"<< std::endl;
 		} else {

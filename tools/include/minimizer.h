@@ -45,8 +45,6 @@ class minimizer {
     minimizer();
     ~minimizer();
 
-    void generatePoints( int _num,
-			 SQ_params _par );
     bool loadPoints( std::string _pcdFilename );
     bool loadPoints( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud );
     void visualizePoints();
@@ -63,4 +61,5 @@ class minimizer {
 
     double mMinThresh;
     int mMaxIter;
+    int mNumParams;
 };
