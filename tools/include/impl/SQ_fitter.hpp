@@ -205,8 +205,7 @@ double SQ_fitter<PointT>::error( const PointCloudPtr &_cloud,
 
 	p = _cloud->points[i];
 	x = p.x; y = p.y; z = p.z;
-	error_( &a,&b,&c, &e1, &e2, &px,&py,&pz,
-		&ra,&pa,&ya, &x,&y,&z, &err );
+    err = error_MATLAB( a, b, c, e1, e2, px, py, pz, ra, pa, ya, x, y, z );
 	sum += err;
     }
 

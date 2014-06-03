@@ -168,29 +168,9 @@ Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
 	 it != mSamples->end(); 
 	 ++it, ++i ) {
 
-//	double a1, a2, a3, e1, e2;
-//	double px, py, pz, ra, pa, ya;
 	double x, y, z;
-/*
-	a1 = _params(0); 
-	a2 = _params(1);
-	a3 = _params(2);
-	e1 = _params(3);
-	e2 = _params(4);
-	px = _params(5);
-	py = _params(6);
-	pz = _params(7);
-	ra = _params(8);
-	pa = _params(9);
-	ya = _params(10);
-*/
 	x = it->x; y = it->y; z = it->z;
 
-/*
-	jac_( &a1, &a2, &a3, &e1, &e2,
-	      &px, &py, &pz, &ra, &pa, &ya,
-	      &x,&y, &z, jac );
-*/
     jac_MATLAB( _params(0), _params(1), _params(2), _params(3), _params(4), _params(5), _params(6), _params(7), _params(8), _params(9), _params(10), x, y, z, jac ); 
 
 	for( int n = 0; n < mNumParams; ++n ) {
@@ -225,47 +205,21 @@ Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 	}
     }
 
-//	double a1, a2, a3, e1, e2;
-//	double px, py, pz, ra, pa, ya;
 	double x, y, z;
-/*
-	a1 = _params(0); 
-	a2 = _params(1);
-	a3 = _params(2);
-	e1 = _params(3);
-	e2 = _params(4);
-	px = _params(5);
-	py = _params(6);
-	pz = _params(7);
-	ra = _params(8);
-	pa = _params(9);
-	ya = _params(10);
-*/
+
         
     for( it = mSamples->begin(), i = 0; 
 	 it != mSamples->end(); 
 	 ++it, ++i ) {
 
 	x = it->x; y = it->y; z = it->z;
-/*
-	hessian_( &a1, &a2, &a3, &e1, &e2,
-		  &px, &py, &pz, &ra, &pa, &ya,
-		  &x, &y, &z, hes );
-*/	
+
 	hess_MATLAB(  _params(0), _params(1), _params(2), _params(3), _params(4), _params(5), _params(6), _params(7), _params(8), _params(9), _params(10),x,y,z,hes );
 
 	int ind = 0;
 	for( int m = 0; m < mNumParams; ++m ) {
 	    for( int n = 0; n < mNumParams; ++n ) {
-		/*
-		if( hes[ind] != hes[ind] ) {
-		    std::cout << "[Hessian] NAN value in ("<< m<<", "<<n <<")"<< std::endl;
-		} else {
-		    ddf(m,n) += hes[ind];
-		}
-        
-		ind++;
-		*/
+
 			if( hes[m][n] != hes[m][n] ) {
 		    	std::cout << "[Hessian] NAN value in ("<< m<<", "<<n <<")"<< std::endl;
 			} else {

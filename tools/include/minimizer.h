@@ -14,30 +14,6 @@
 // Helpers
 double getRand( double _min, double _max );
 
-extern "C" {
-    void jac_( double *a, double *b, double *c, 
-	       double *e1, double *e2,
-	       double *px, double *py, double *pz,
-	       double *ra, double *pa, double *ya,
-	       double *x, double *y, double *z, 
-	       double *J );
-
-    void hessian_( double *a, double *b, double *c, 
-		   double *e1, double *e2,
-		   double *px, double *py, double *pz,
-		   double *ra, double *pa, double *ya,
-		   double *x, double *y, double *z, 
-		   double *H );
-
-    void error_( double *a, double *b, double *c, 
-		 double *e1, double *e2,
-		 double *px, double *py, double *pz,
-		 double *ra, double *pa, double *ya,
-		 double *x, double *y, double *z, 
-		 double *er );
-
-}
-
 /**
  * @class minimizer
  */
