@@ -6,6 +6,7 @@
 #include <SQ_fitter.h>
 #include <SQ_sampler.h>
 #include <SQ_params.h>
+
 #include <pcl/io/pcd_io.h>
 
 #include <random>
@@ -44,16 +45,17 @@ int main( int argc, char* argv[] ) {
 
     
     SQ_fitter<pcl::PointXYZ>sqf;    
+    
     if( sqf.SQFitting( cloud,
 		       0.05, 0.01,
 		       4, 0.01 ) ) {
 	std::cout << "FOUND A SOLUTION"<< std::endl;
     } else {
 	std::cout << "BANG, DID NOT FIND A SOLUTION" << std::endl;
-    }
-
-    /*
+	}
     
+    
+    /*
     // 2. Get the initial values from the bounding box and PCA
     double error0 = sqf.initialize( cloud );
     std::cout<< "First approx. error: "<< error0 <<std::endl;
@@ -61,7 +63,7 @@ int main( int argc, char* argv[] ) {
 
     // 3. Calculate the error
     double error = sqf.error( cloud, par );
-
+    
    
     std::cout << "Error should be very close to zero and is: "<<error<<std::endl;
     */

@@ -59,7 +59,7 @@ set_target_properties( JH PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR
 #set_target_properties( fitting_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
 add_executable( fitting_test2 tests/fitting_test2.cpp )
-target_link_libraries( fitting_test2 SQ_fitter JH ${PCL_LIBRARIES}  )
+target_link_libraries( fitting_test2  SQ_fitter minimizer JH ${PCL_LIBRARIES}  )
 set_target_properties( fitting_test2 PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
 # Sample

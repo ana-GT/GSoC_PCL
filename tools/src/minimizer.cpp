@@ -64,7 +64,7 @@ bool minimizer::loadPoints( std::string _pcdFilename ) {
 /**
  * @function loadPoints
  */
-bool minimizer::loadPoints( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud ) {
+bool minimizer::loadPoints( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud ) {
     
     mSamples = _cloud;
     std::cout << "Loaded "<< mSamples->points.size() << " points" << std::endl;
