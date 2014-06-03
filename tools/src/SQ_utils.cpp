@@ -2,6 +2,7 @@
  * @file SQ_utils.cpp
  */
 #include "SQ_utils.h"
+#include <iostream>
 
 /**
  * @function param2Transf 
@@ -61,4 +62,43 @@ Eigen::VectorXd params2Vec( const SQ_params &_par ) {
 	_par.ra, _par.pa, _par.ya;
 
     return vec;
+}
+
+/**
+ * @function vec2Param
+ * @brief Fill a param from a Eigen::VectorXd of size 11
+ */
+bool vec2Param( const Eigen::VectorXd &_vec,
+		SQ_params &_par ) {
+
+    if( _vec.size() != 11 ) { return false; }
+    _par.a = _vec(0);
+    _par.b = _vec(1);
+    _par.c = _vec(2);
+
+    _par.e1 = _vec(3);
+    _par.e2 = _vec(4);
+
+    _par.px = _vec(5);
+    _par.py = _vec(6);
+    _par.pz = _vec(7);
+
+    _par.ra = _vec(8);
+    _par.pa = _vec(9);
+    _par.ya = _vec(10);
+
+    return true;
+}
+
+/**
+ * @function printParamsInfo
+ * @brief Print in a human-friendly form the parameters info
+ */
+void printParamsInfo( const SQ_params &_par ) {
+
+    std::cout << "\t ** Params: **"<< std::endl;
+    std::cout << "\t Axis dimensions: "<< _par.a << ", "<< _par.b<<", "<< _par.c << std::endl;
+    std::cout << "\t Epsilons: "<< _par.e1 << ", "<< _par.e2<< std::endl;
+    std::cout << "\t Trans: "<< _par.px << ", "<< _par.py<<", "<< _par.pz << std::endl;
+   std::cout << "\t Rot: "<< _par.ra << ", "<< _par.pa<<", "<< _par.ya << std::endl;
 }

@@ -26,7 +26,11 @@ class SQ_fitter {
   double initialize( const PointCloudPtr &_cloud );
   typename pcl::PointCloud<PointT>::Ptr downsample( const PointCloudPtr &_cloud,
 			    double _voxelSize );
-  double fitting( const PointCloudPtr &_cloud );
+  double fitting( const PointCloudPtr &_cloud,
+		  const SQ_params &_par_in,
+		  SQ_params &_par_out);
+  double error( const PointCloudPtr &_cloud,
+		const SQ_params &_params );
 
  private:
 

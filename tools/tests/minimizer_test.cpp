@@ -24,9 +24,9 @@ int main( int argc, char* argv[] ) {
     //mM.visualizePoints();
 
     std::cout << "\t [INFO] Calling minimization!"<< std::endl;
-    SQ_params par;
+    SQ_params par_in, par_out;
 
-    if( mM.minimize(par) ) {
+    if( mM.minimize(par_in, par_out) ) {
 	std::cout << "\t SUCCESS!"<< std::endl; 
     } else {
 	std::cout << "\t FAILURE!"<< std::endl;

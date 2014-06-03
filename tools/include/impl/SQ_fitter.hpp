@@ -6,6 +6,7 @@
 #include "SQ_fitter.h"
 #include "SQ_sampler.h"
 #include "SQ_utils.h"
+#include "minimizer.h"
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 
@@ -49,23 +50,27 @@ bool SQ_fitter<PointT>::SQFitting( const PointCloudPtr &_cloud,
   double error_i; double error_i_1;
   double s_i;
   bool fitted;
+  SQ_params par_i;
   
-  error_i_1 = initialize( _cloud );
+  error_i = initialize( _cloud );
   
   fitted = false;
   std::cout << "Initial pointcloud size: "<< _cloud->points.size() << std::endl;
   for( int i = 1; i <= N_; ++i ) {
-    s_i = _smax - (i-1)*ds;
-    
-    PointCloudPtr cloud_i( new pcl::PointCloud<PointT>() );
-    cloud_i = downsample( _cloud, s_i );
-    std::cout << "Iteration "<<i<<" size of cloud: "<< cloud_i->points.size()<< " and size of voxel: "<< s_i << std::endl;
-    error_i = fitting( cloud_i );
-    
-    if( fabs( error_i - error_i_1 ) < thresh_ ) {
-      fitted = true;
-      //break;
-    }
+      
+      error_i_1 = error_i;
+      s_i = _smax - (i-1)*ds;
+      
+      PointCloudPtr cloud_i( new pcl::PointCloud<PointT>() );
+      cloud_i = downsample( _cloud, s_i );
+      std::cout << "Iteration "<<i<<" size of cloud: "<< cloud_i->points.size()<< " and size of voxel: "<< s_i << std::endl;
+      error_i = fitting( cloud_i, 
+			 par0_, par_i );
+      
+      if( fabs( error_i - error_i_1 ) < thresh_ ) {
+	  fitted = true;
+	  break;
+      }
   }
   
   return fitted;
@@ -126,7 +131,8 @@ double SQ_fitter<PointT>::initialize( const PointCloudPtr &_cloud ) {
     SQ_sampler sqs;
     pcl::PointCloud<pcl::PointXYZ>::Ptr se0( new pcl::PointCloud<pcl::PointXYZ>() );
     se0 = sqs.sampleSQ_naive( par0_ );
-    viewer->addPointCloud( se0, "Ellipsoid 0" );
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> se0_col(se0, 255,0,0);
+    viewer->addPointCloud( se0, se0_col, "Ellipsoid 0" );
 
 
     while( !viewer->wasStopped() ) {
@@ -134,7 +140,8 @@ double SQ_fitter<PointT>::initialize( const PointCloudPtr &_cloud ) {
 	boost::this_thread::sleep( boost::posix_time::microseconds(100000) );
     }
 
-  return 0;
+    printParamsInfo( par0_ );
+    return this->error( _cloud, par0_ );
 }
 
 /**
@@ -159,9 +166,50 @@ typename pcl::PointCloud<PointT>::Ptr SQ_fitter<PointT>::downsample( const Point
  * @function fitting
  */
 template<typename PointT>
-double SQ_fitter<PointT>::fitting( const PointCloudPtr &_cloud ) {
+double SQ_fitter<PointT>::fitting( const PointCloudPtr &_cloud,
+				   const SQ_params &_par_in,
+				   SQ_params &_par_out ) {
   
-  return 0;
+    minimizer mini;
+    mini.loadPoints( _cloud );
+    mini.minimize( _par_in,
+		   _par_out );
+
+    // Return error
+    return this->error( _cloud, _par_out );
 }
 
+/**
+ * @function error
+ * @brief Calculate the error from the _cloud w.r.t. the SQ defined by _params
+ */
+template<typename PointT>
+double SQ_fitter<PointT>::error( const PointCloudPtr &_cloud,
+				 const SQ_params &_par ) {
+
+    double sum; double err;
+    
+    double a,b,c, e1,e2;
+    double px,py,pz; double ra,pa,ya;
+    double x,y,z;
+    pcl::PointXYZ p;
+
+    a = _par.a; b = _par.b; c = _par.c;
+    e1 = _par.e1; e2 = _par.e2; 
+    px = _par.px; py = _par.py; pz = _par.pz;
+    ra = _par.ra; pa = _par.pa; ya = _par.ya;
+
+
+    sum = 0;
+    for( int i = 0; i < _cloud->points.size(); ++i ) {
+
+	p = _cloud->points[i];
+	x = p.x; y = p.y; z = p.z;
+	error_( &a,&b,&c, &e1, &e2, &px,&py,&pz,
+		&ra,&pa,&ya, &x,&y,&z, &err );
+	sum += err;
+    }
+
+    return sum;
+}
 

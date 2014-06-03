@@ -48,8 +48,10 @@ class minimizer {
     void generatePoints( int _num,
 			 SQ_params _par );
     bool loadPoints( std::string _pcdFilename );
+    bool loadPoints( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud );
     void visualizePoints();
-    bool minimize( SQ_params _par );
+    bool minimize( const SQ_params &_par_in,
+		   SQ_params &_par_out );
     Eigen::VectorXd df( Eigen::VectorXd _params );
     Eigen::MatrixXd ddf( Eigen::VectorXd _params ); 
     int getNumSamples() { return mSamples->points.size(); }

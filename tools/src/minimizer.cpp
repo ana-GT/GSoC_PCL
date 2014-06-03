@@ -22,7 +22,7 @@ minimizer::minimizer() :
     mParams.resize(11);
     mParams << 0.5,0.5,0.5, 0.5,0.5, 0,0,0, 0,0,0;
     mLambda = 0.1;
-    mMaxIter = 10000;
+    mMaxIter = 1000;
     mMinThresh = 0.001;
 }
 
@@ -62,6 +62,18 @@ bool minimizer::loadPoints( std::string _pcdFilename ) {
 }
 
 /**
+ * @function loadPoints
+ */
+bool minimizer::loadPoints( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud ) {
+    
+    mSamples = _cloud;
+    std::cout << "Loaded "<< mSamples->points.size() << " points" << std::endl;
+    return true;
+    
+}
+
+
+/**
  * @function visualizePoints
  */
 void minimizer::visualizePoints() {
@@ -86,7 +98,8 @@ void minimizer::visualizePoints() {
 /**
  * @function minimize
  */
-bool minimizer::minimize( SQ_params _par ) {
+bool minimizer::minimize( const SQ_params &_par_in,
+			  SQ_params &_par_out ) {
     
     Eigen::MatrixXd H;  Eigen::MatrixXd J;
     Eigen::MatrixXd dH = Eigen::MatrixXd::Identity(11,11);
@@ -95,7 +108,7 @@ bool minimizer::minimize( SQ_params _par ) {
     int iter = 0;
     Eigen::VectorXd oldParams;
 
-    mParams << params2Vec( _par );
+    mParams << params2Vec( _par_in );
 
     std::cout << "Initial guess for coefficients: "<< mParams.transpose() << std::endl;
 
@@ -104,10 +117,13 @@ bool minimizer::minimize( SQ_params _par ) {
 	H = ddf( mParams );
 	J = df( mParams );
 
-	for( int i = 0; i < 5; ++i ) { dH(i,i) = H(i,i); }
+	for( int i = 0; i < 11; ++i ) { dH(i,i) = H(i,i); }
 	mParams = mParams - (H + mLambda*dH).inverse()*J;
 	iter++;
     } while( iter < mMaxIter && (mParams - oldParams).norm() > mMinThresh );
+    
+    vec2Param( mParams, _par_out );
+    
     
     if( iter >= mMaxIter ) {
 	std::cout << "[BAD] Crab, we did not converge after "<<iter<<" iterations"<< std::endl;
