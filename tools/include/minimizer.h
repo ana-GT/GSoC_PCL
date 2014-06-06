@@ -28,6 +28,9 @@ class minimizer {
     void visualizePoints();
     bool minimize( const SQ_params &_par_in,
 		   SQ_params &_par_out );
+    bool minimize2( const SQ_params &_par_in,
+		    SQ_params &_par_out );
+    double f( Eigen::VectorXd _params );
     Eigen::VectorXd df( Eigen::VectorXd _params );
     Eigen::MatrixXd ddf( Eigen::VectorXd _params ); 
     int getNumSamples() { return mSamples->points.size(); }

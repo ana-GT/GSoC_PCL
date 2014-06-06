@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include "matlab_equations.h"
+#include <Eigen/SVD>
 
 /**
  * @function minimizer
@@ -104,21 +105,9 @@ bool minimizer::minimize( const SQ_params &_par_in,
 
     do {
 	oldParams = mParams;
-    std::cout << "Starting calculate H and F"<< std::endl;
-	double ts, tf, dt;
-    ts = clock();
 	H = ddf( mParams );
-    tf = clock();
-    dt = (tf - ts) / CLOCKS_PER_SEC;
-    std::cout << "Hessian time: "<< dt << std::endl;
-    ts = clock();
 	J = df( mParams );
-    tf = clock();
-    dt = (tf - ts) / CLOCKS_PER_SEC;
-    std::cout << "Jac time: "<< dt << std::endl;
-
-    std::cout << "Ending calculate H and F"<< std::endl;
-
+	
 	for( int i = 0; i < mNumParams; ++i ) { dH(i,i) = H(i,i); }
 	mParams = mParams - (H + mLambda*dH).inverse()*J;
 	//clamp(mParams);
@@ -152,6 +141,97 @@ bool minimizer::minimize( const SQ_params &_par_in,
     
 
     return true;
+}
+
+/**
+ * @function minimize2
+ * @brief From Fletcher's book
+ */
+bool minimizer::minimize2( const SQ_params &_par_in,
+			   SQ_params &_par_out ) {
+    
+    Eigen::MatrixXd G; Eigen::VectorXd g; Eigen::MatrixXd M;
+    Eigen::VectorXd dk;
+    double vk; double rk;
+    double error;
+    // Initialize mA with some value
+    int iter = 0;
+    Eigen::VectorXd oldParams;
+    
+    mParams << params2Vec( _par_in );
+
+    std::cout << "Initial guess for coefficients: "<< mParams.transpose() << std::endl;
+
+    do {
+	oldParams = mParams;
+	// (i) Calculate g(k) and G(k)
+	g = df( mParams );
+	G = ddf( mParams );
+
+	// (ii) Factorize G(k) + v(k)*I
+	M = G + vk*Eigen::MatrixXd::Identity(mNumParams, mNumParams);
+	
+	// check if M is positive definite
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd( M, Eigen::ComputeThinU | Eigen::ComputeThinV );
+	Eigen::VectorXd ev = svd.singularValues();
+	// If not positive definite
+	if( ev(10) <= 0 ) {
+	    vk *= 4;
+	} 
+
+	// (iii) Solve for -g(k)
+	else {
+	    dk = svd.solve( -g );
+	    // (iv) Calculate r(k) = f(xk) - f(xk+dk) / f(xk) - q(xk + dk)
+	    rk = ( f(mParams) - f(mParams + dk) ) / (-g.dot(dk) - (0.5*dk.transpose()*(G*dk))(0) );
+	    
+	    // (v)
+	    if( rk < 0.25 ) { vk *= 4; }
+	    if( rk > 0.75 ) { vk *= 0.5; }
+	    
+	    // (vi)
+	    if( rk > 0 ) {
+	       mParams += dk;
+	    }
+	}
+
+	iter++;
+	error = (mParams - oldParams).norm();
+
+    } while( iter < mMaxIter && error > mMinThresh );
+
+    vec2Param( mParams, _par_out );
+    
+    
+    if( iter >= mMaxIter ) {
+	std::cout << "[BAD] Crab, we did not converge after "<<iter<<" iterations"<< std::endl;
+	std::cout << "Final coefficients: "<< mParams.transpose() << std::endl;
+	return false;
+    } else {
+	std::cout << "[GOOD] Yes, we did converge in "<< iter << std::endl;
+	std::cout << "Final coefficients: "<< mParams.transpose() << std::endl;
+	std::cout << "J: \n"<< g << std::endl; 
+	std::cout << "H: \n" << G << std::endl;
+	return true;
+    }
+
+}
+
+/**
+ * @function f
+ * @brief Evaluates the SQ equation
+ */
+double minimizer::f( Eigen::VectorXd _params ) {
+
+    double x, y, z, fx;
+    
+    fx = 0;
+    pcl::PointCloud<pcl::PointXYZ>::iterator it;
+    for( it = mSamples->begin(); it != mSamples->end(); ++it ) {	
+	x = it->x; y = it->y; z = it->z;	
+	fx += f_MATLAB( _params, x, y, z );
+    }
+    return fx;    
 }
 
 /**

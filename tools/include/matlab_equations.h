@@ -5,6 +5,9 @@
 
 #include <Eigen/Core>
 
+double f_MATLAB( const Eigen::VectorXd &_params, 
+			    double x, double y, double z );
+
 Eigen::VectorXd jac_MATLAB( const Eigen::VectorXd &_params, 
 			    double x, double y, double z );
 

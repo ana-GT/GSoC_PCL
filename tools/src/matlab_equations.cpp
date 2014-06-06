@@ -5,6 +5,47 @@
 #include "matlab_equations.h"
 #include <cmath>
 
+double f_MATLAB( const Eigen::VectorXd &_params, 
+		     double x, double y, double z ) {
+
+    double a = _params(0);
+    double b = _params(1);
+    double c = _params(2);
+    double e1 = _params(3);
+    double e2 = _params(4);
+    double px = _params(5);
+    double py = _params(6); 
+    double pz = _params(7); 
+    double ra = _params(8); 
+    double pa = _params(9); 
+    double ya = _params(10);
+
+  double t2 = cos(ya);
+  double t3 = sin(ra);
+  double t4 = cos(ra);
+  double t5 = sin(pa);
+  double t6 = sin(ya);
+  double t7 = t3*t6;
+  double t8 = t2*t4*t5;
+  double t9 = t7+t8;
+  double t10 = t2*t3;
+  double t11 = t10-t4*t5*t6;
+  double t12 = cos(pa);
+  double t13 = px*t9-py*t11-t9*x+t11*y+pz*t4*t12-t4*t12*z;
+  double t14 = t4*t6;
+  double t15 = t14-t2*t3*t5;
+  double t16 = t2*t4;
+  double t17 = t3*t5*t6;
+  double t18 = t16+t17;
+  double t19 = px*t15-py*t18-t15*x+t18*y-pz*t3*t12+t3*t12*z;
+  double t20 = pz*t5-t5*z-px*t2*t12-py*t6*t12+t2*t12*x+t6*t12*y;
+  double t21 = 1.0/e2;
+  double t22 = 1.0/e1;
+  double t23 = pow(pow(pow(1.0/(a*a)*(t20*t20),t21)+pow(1.0/(b*b)*(t19*t19),t21),e2*t22)+pow(1.0/(c*c)*(t13*t13),t22),e1)-1.0;
+  return (t23*t23)*sqrt(a*b*c);
+
+}
+
 double error_MATLAB( const Eigen::VectorXd &_params, 
 		     double x, double y, double z ) {
 
