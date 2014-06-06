@@ -47,8 +47,8 @@ int main( int argc, char* argv[] ) {
     par_in.a += 0.01;
     par_in.c -= 0.02;
     par_in.py += 0.03;
-    par_in.e1 = 0.6;
-    par_in.e2 = 0.6;
+    par_in.e1 = 0.4;
+    par_in.e2 = 0.4;
 
     if( mM.minimize(par_in, par_out) ) {
 	std::cout << "\t SUCCESS!"<< std::endl;

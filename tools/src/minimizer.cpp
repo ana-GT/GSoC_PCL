@@ -20,7 +20,7 @@ minimizer::minimizer() :
     srand( time(NULL) );
 
     mLambda = 0.01;
-    mMaxIter = 1000;
+    mMaxIter = 100;
     mMinThresh = 0.005;
 
     // 11 Parameters: a,b,c, e1,e2, px,py,pz, ra,pa,ya
@@ -176,7 +176,9 @@ bool minimizer::minimize2( const SQ_params &_par_in,
 	Eigen::VectorXd ev = svd.singularValues();
 	// If not positive definite
 	if( ev(10) <= 0 ) {
+	    std::cout << "M is not definite positive"<< std::endl;
 	    vk *= 4;
+	    error = 10;
 	} 
 
 	// (iii) Solve for -g(k)
@@ -192,11 +194,17 @@ bool minimizer::minimize2( const SQ_params &_par_in,
 	    // (vi)
 	    if( rk > 0 ) {
 	       mParams += dk;
+	       error = (mParams - oldParams).norm();
+	    } else {
+		std::cout << "Rk is not what it is supposed to be"<< std::endl;
+		error = 10;
 	    }
 	}
 
 	iter++;
-	error = (mParams - oldParams).norm();
+
+
+	std::cout << "Iter: "<< iter << " with error: "<< error << std::endl;
 
     } while( iter < mMaxIter && error > mMinThresh );
 
