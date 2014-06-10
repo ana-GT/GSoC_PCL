@@ -30,14 +30,12 @@ int main( int argc, char* argv[] ) {
   thresh = 0.1;
   N = 5;
   
+  // If successful, show the fitting
   if( sqf.SQFitting( cloud,
 		     smax, smin,
 		     N, thresh ) ) {
-    std::cout << "\t [*] Fitting was successful" << std::endl;
-  } else {
-    std::cout << "\t [*] Fitting was unsuccessful" << std::endl;
-  }
-  
+    sqf.visualizeFit();      
+  }   
   
   return 0;
 }

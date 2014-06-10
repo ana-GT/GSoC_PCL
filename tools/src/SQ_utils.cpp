@@ -125,3 +125,61 @@ void visualizeSQ(  boost::shared_ptr<pcl::visualization::PCLVisualizer> &_viewer
     _viewer->addPointCloud<pcl::PointXYZ> ( sq_pcd, color, _name );	
 
 }
+
+/**
+ * @function clamp
+ * @brief Keep SQ parameters within reasonable values (positive dimensions
+ * and limited e1 and e2) 
+ */
+bool clamp( SQ_params &_par ) {
+
+    double min_d = 0.01;
+    double max_d = 1.5;
+    bool clamped = false;
+
+    if( _par.e1 < 0.1 ) { _par.e1 = 0.1; clamped = true; }
+    if( _par.e1 > 1.9 ) { _par.e1 = 1.9; clamped = true; }
+
+    if( _par.e2 < 0.1 ) { _par.e2 = 0.1; clamped = true; }
+    if( _par.e2 > 1.9 ) { _par.e2 = 1.9; clamped = true; }
+
+    if( _par.a < min_d ) { _par.a = min_d; clamped = true; }
+    if( _par.a > max_d ) { _par.a = max_d; clamped = true; }
+
+    if( _par.b < min_d ) { _par.b = min_d; clamped = true; }
+    if( _par.b > max_d ) { _par.b = max_d; clamped = true; }
+
+    if( _par.c < min_d ) { _par.c = min_d; clamped = true; }
+    if( _par.c > max_d ) { _par.c = max_d; clamped = true; }
+
+    return clamped;
+}
+
+bool clamp( Eigen::VectorXd &_par ) {
+
+    double min_d = 0.01;
+    double max_d = 1.5;
+    double min_e = 0.1;
+    double max_e = 1.9;
+    bool clamped = false;
+
+    // a 0 b 1 c 2 e1 3 e2 4 
+
+    if( _par(3) < min_e ) { _par(3) = min_e; clamped = true; }
+    if( _par(3) > max_e ) { _par(3) = max_e; clamped = true; }
+
+    if( _par(4) < min_e ) { _par(4) = min_e; clamped = true; }
+    if( _par(4) > max_e ) { _par(4) = max_e; clamped = true; }
+
+    if( _par(0) < min_d ) { _par(0) = min_d; clamped = true; }
+    if( _par(0) > max_d ) { _par(0) = max_d; clamped = true; }
+
+    if( _par(1) < min_d ) { _par(1) = min_d; clamped = true; }
+    if( _par(1) > max_d ) { _par(1) = max_d; clamped = true; }
+
+    if( _par(2) < min_d ) { _par(2) = min_d; clamped = true; }
+    if( _par(2) > max_d ) { _par(2) = max_d; clamped = true; }
+
+    return clamped;
+
+}

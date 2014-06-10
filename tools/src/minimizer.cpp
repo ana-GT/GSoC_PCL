@@ -93,14 +93,15 @@ bool minimizer::minimize( const SQ_params &_par_in,
     Eigen::MatrixXd H;  Eigen::MatrixXd J;
     Eigen::MatrixXd dH = Eigen::MatrixXd::Identity( mNumParams, mNumParams );
     double error;
+    Eigen::VectorXd dp;
 
     // Initialize mA with some value
     int iter = 0;
     Eigen::VectorXd oldParams;
     
     mParams << params2Vec( _par_in );
-
-    std::cout << "Initial guess for coefficients: "<< mParams.transpose() << std::endl;
+    
+    if( clamp(mParams) ) { std::cout << "Had to clamp before starting minimization loop"<<std::endl;}
 
     do {
 	oldParams = mParams;
@@ -108,8 +109,16 @@ bool minimizer::minimize( const SQ_params &_par_in,
 	J = df( mParams );
 	
 	for( int i = 0; i < mNumParams; ++i ) { dH(i,i) = H(i,i); }
-	mParams = mParams - (H + mLambda*dH).inverse()*J;
-	//clamp(mParams);
+	std::cout << "Params before: "<< mParams.transpose() << std::endl;
+
+	Eigen::MatrixXd M = (H + mLambda*dH);
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd( M, Eigen::ComputeThinU | Eigen::ComputeThinV );
+	Eigen::VectorXd ev = svd.singularValues();
+	dp = svd.solve( J );
+
+	mParams = mParams - dp;
+	std::cout << "Params before: "<< mParams.transpose() << std::endl;
+	if( clamp(mParams) ) { std::cout << "Had to clamp"<< std::endl;}
 	iter++;
 	error = (mParams - oldParams).norm();
 	for( int i = 0; i < mNumParams; ++i ) {
@@ -128,7 +137,6 @@ bool minimizer::minimize( const SQ_params &_par_in,
     
     if( iter >= mMaxIter ) {
 	std::cout << "[BAD] Crab, we did not converge after "<<iter<<" iterations"<< std::endl;
-	std::cout << "Final coefficients: "<< mParams.transpose() << std::endl;
 	return false;
     } else {
 	std::cout << "[GOOD] Yes, we did converge in "<< iter << std::endl;
@@ -194,6 +202,7 @@ bool minimizer::minimize2( const SQ_params &_par_in,
 	    if( rk > 0 ) {
 	       mParams += dk;
 	       error = (mParams - oldParams).norm();
+	       clamp(mParams);
 	    } else {
 		std::cout << "Rk is not what it is supposed to be"<< std::endl;
 		error = 10;
@@ -230,13 +239,12 @@ bool minimizer::minimize2( const SQ_params &_par_in,
  */
 double minimizer::f( Eigen::VectorXd _params ) {
 
-    double x, y, z, fx;
+    double fx;
     
     fx = 0;
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
-    for( it = mSamples->begin(); it != mSamples->end(); ++it ) {	
-	x = it->x; y = it->y; z = it->z;	
-	fx += f_MATLAB( _params, x, y, z );
+    for( it = mSamples->begin(); it != mSamples->end(); ++it ) {		
+	fx += f_MATLAB( _params, it->x, it->y, it->z );
     }
     return fx;    
 }
@@ -248,22 +256,18 @@ double minimizer::f( Eigen::VectorXd _params ) {
 Eigen::VectorXd minimizer::df( Eigen::VectorXd _params ) {
     
     Eigen::VectorXd df = Eigen::VectorXd::Zero(mNumParams);
-    double x, y, z;
     
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
-    int i;
     Eigen::VectorXd jac;
 
 
     for( it = mSamples->begin(); it != mSamples->end(); ++it ) {
 	
-	x = it->x; y = it->y; z = it->z;
-	
-	jac = jac_MATLAB( _params, x, y, z ); 
+	jac = jac_MATLAB( _params, it->x, it->y, it->z ); 
 
 	for( int n = 0; n < mNumParams; ++n ) {
 	    if( jac[n] != jac[n] ) {
-		std::cout << "[Jacobian] NAN value in ("<<n<<")"<< std::endl;
+		std::cout << "[Jacobian] Jac ["<<n<<"]:"<<jac[n]<< std::endl;
 	    } 
 	}
 	df += jac;
@@ -283,12 +287,9 @@ Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
     pcl::PointCloud<pcl::PointXYZ>::iterator it;    
     double hest[11][11];
 
-    double x, y, z;
-        
     for( it = mSamples->begin(); it != mSamples->end(); ++it ) {
 
-	x = it->x; y = it->y; z = it->z;
-	hess_MATLAB( _params, x, y, z, 
+	hess_MATLAB( _params, it->x, it->y, it->z, 
 		     hest );
 
 	int ind = 0;
@@ -296,14 +297,14 @@ Eigen::MatrixXd minimizer::ddf( Eigen::VectorXd _params ) {
 	    for( int n = 0; n < mNumParams; ++n ) {
 		
 		if( hest[m][n] != hest[m][n] ) {
-		    std::cout << "[Hessian] NAN value in ("<< m<<", "<<n <<")"<< " with params:"<< _params.transpose() << " and xyz:"<<x<<", "<<y<<", "<<z<< std::endl;
+		    std::cout << "[Hessian] Hess ["<< m<<"]["<<n <<"]"<< hest[m][n]<<" \n with params:"<< _params.transpose() << " and xyz:"<<it->x<<", "<<it->y<<", "<<it->z<< std::endl;
 		} else {
 		    ddf(m,n) += hest[m][n];
 		}
-	    }
-	}
+	    } // for n
+	} // for m
 	
-    }
+    } // for all mSamples
     
     return ddf;
 }

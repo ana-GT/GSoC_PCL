@@ -51,7 +51,7 @@ int main( int argc, char* argv[] ) {
     par_in.e1 = 0.8;
     par_in.e2 = 0.8;
 
-    if( mM.minimize(par_in, par_out) ) {
+    if( mM.minimize2(par_in, par_out) ) {
 	std::cout << "\t SUCCESS!"<< std::endl;
     } else {
 	std::cout << "\t FAILURE!"<< std::endl;

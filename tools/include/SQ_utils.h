@@ -27,3 +27,5 @@ void visualizeSQ(  boost::shared_ptr<pcl::visualization::PCLVisualizer> &_viewer
 		   const SQ_params &_par,
 		   std::string _name,
 		   int _r, int _g, int _b );
+bool clamp( SQ_params &_par );
+bool clamp( Eigen::VectorXd &_par );
