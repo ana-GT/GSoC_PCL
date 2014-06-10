@@ -1,6 +1,7 @@
 /**
  * @file minimizer.cpp
- * @brief Mock minimizer for fi =a0 +a1*xi^2 + a2*yi + a3*zi^3 
+ * @brief One-level Levenberg-Marquadt as implemented in 
+ * practical methods of Optimization pag. 102
  */
 #include "minimizer.h"
 #include "SQ_sampler.h"
@@ -39,8 +40,7 @@ minimizer::~minimizer() {
 /**
  * @function loadPoints
  */
-bool minimizer::loadPoints( std::string _pcdFilename ) {
-    
+bool minimizer::loadPoints( std::string _pcdFilename ) {    
     if( pcl::io::loadPCDFile<pcl::PointXYZ>( _pcdFilename.c_str(), *mSamples ) == -1 ) {
 	std::cout <<"\t [ERROR] Could not read file " << std::endl;
 	return false;
@@ -54,8 +54,7 @@ bool minimizer::loadPoints( std::string _pcdFilename ) {
 /**
  * @function loadPoints
  */
-bool minimizer::loadPoints( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud ) {
-    
+bool minimizer::loadPoints( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud ) {    
     mSamples = _cloud;
     std::cout << "\t [GOOD] Loaded "<< mSamples->points.size() << " points" << std::endl;
     return true;    

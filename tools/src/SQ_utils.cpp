@@ -2,6 +2,7 @@
  * @file SQ_utils.cpp
  */
 #include "SQ_utils.h"
+#include "SQ_sampler.h"
 #include <iostream>
 
 
@@ -102,4 +103,25 @@ void printParamsInfo( const SQ_params &_par ) {
     std::cout << "\t Epsilons: "<< _par.e1 << ", "<< _par.e2<< std::endl;
     std::cout << "\t Trans: "<< _par.px << ", "<< _par.py<<", "<< _par.pz << std::endl;
    std::cout << "\t Rot: "<< _par.ra << ", "<< _par.pa<<", "<< _par.ya << std::endl;
+}
+
+
+/***
+ * @function visualizeSQ
+ * @brief Add sampled Super Quadric to viewer (red color by default)
+ */
+void visualizeSQ(  boost::shared_ptr<pcl::visualization::PCLVisualizer> &_viewer,
+		   const SQ_params &_par,
+		   std::string _name,
+		   int _r, int _g, int _b ) {
+
+    // Create sample pointcloud of SQ expressed by _par
+    SQ_sampler sqs;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr sq_pcd( new pcl::PointCloud<pcl::PointXYZ>() );
+    sq_pcd = sqs.sampleSQ_naive( _par );
+
+    // Add it 
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color( sq_pcd, _r, _g, _b );
+    _viewer->addPointCloud<pcl::PointXYZ> ( sq_pcd, color, _name );	
+
 }
