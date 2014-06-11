@@ -61,6 +61,11 @@ add_executable( sampler_test tests/sampler_test.cpp )
 target_link_libraries( sampler_test  SQ_utils SQ_sampler ${PCL_LIBRARIES} )
 set_target_properties( sampler_test PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
+# Sample test 2
+add_executable( sampler_test2 tests/sampler_test2.cpp )
+target_link_libraries( sampler_test2  SQ_utils SQ_sampler ${PCL_LIBRARIES} )
+set_target_properties( sampler_test2 PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+
 
 # Fitting SQ
 add_executable( fitting_test tests/fitting_test.cpp )

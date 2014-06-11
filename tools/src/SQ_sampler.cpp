@@ -212,6 +212,9 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr SQ_sampler::sampleSQ_naive( SQ_params _par )
 						     *cloud,
 						     param2Transf(_par) );
     
+    cloud->height = 1;
+    cloud->width = cloud->points.size();
+
     return cloud;
 }
 

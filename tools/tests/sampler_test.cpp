@@ -18,7 +18,6 @@ int main( int argc, char* argv[] ) {
     // Create the sampler class
     SQ_sampler sqs;
 
-
     // Sample SQ naive
     SQ_params par; 
     par.a = 1.5; par.b = 1.0; par.c = 2.75;
