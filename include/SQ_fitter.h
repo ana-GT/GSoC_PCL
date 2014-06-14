@@ -15,6 +15,10 @@ class SQ_fitter {
  public:
   typedef typename pcl::PointCloud<PointT>::Ptr PointCloudPtr;
   void setInputCloud( const PointCloudPtr &_cloud );
+  void getBoundingBox(const PointCloudPtr &_cloud,
+		      double _dim[3],
+		      double _trans[3],
+		      double _rot[3] );
   bool fit();
 
   bool minimize( const PointCloudPtr &_cloud, 

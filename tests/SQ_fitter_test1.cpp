@@ -21,7 +21,7 @@ int main( int argc, char* argv[] ) {
   // 1. Read pointcloud from input
   int v;
   std::string filename;
-  while( (v=getopt( argc, argv, "p:")) != -1 ) {
+  while( (v=getopt( argc, argv, "p:h")) != -1 ) {
 	
     switch(v) {
     case 'p': {
@@ -36,6 +36,9 @@ filename<< std::endl;
 	  }
 
     } break;
+	case 'h': {
+	  std::cout <<"Syntax: "<<argv[0]<<" filename.pcd"<< std::endl;
+	} break;
     } // end switch
 	
   }
