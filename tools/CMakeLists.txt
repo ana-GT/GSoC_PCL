@@ -2,8 +2,7 @@
 project( tools Fortran CXX )
 
 set( CMAKE_Fortran_FLAGS "-c -g " )
-set( CMAKE_CXX_FLAGS "-std=gnu++11" )
-
+set( CMAKE_CXX_FLAGS "-std=c++0x" )
 # Eigen
 find_package( PkgConfig )
 pkg_check_modules( EIGEN eigen3 )

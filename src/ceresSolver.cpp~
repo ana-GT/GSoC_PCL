@@ -1,0 +1,16 @@
+#include <ceres/ceres.h>
+
+int main( int argc, char* argv ) {
+
+  // Read pointcloud
+  // Approximate bounding box
+
+  // Create residual function
+  // Create problem
+
+  // Solve
+
+  // Visualize final results
+
+
+}
