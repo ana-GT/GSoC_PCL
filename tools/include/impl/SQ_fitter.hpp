@@ -10,7 +10,6 @@
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 
-#include <pcl/features/moment_of_inertia_estimation.h>
 #include <pcl/visualization/cloud_viewer.h>
 
 /**

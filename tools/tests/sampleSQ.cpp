@@ -1,5 +1,7 @@
 /**
- * @file sampler_test2.cpp
+ * @file sampleSQ.cpp
+ * @brief Generate pointcloud with Super Quadric sampled
+ * @author A. Huaman Quispe
  */
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
@@ -11,6 +13,8 @@
 #include "SQ_sampler.h"
 #include "SQ_params.h"
 #include "SQ_utils.h"
+
+void printHelp();
 
 /**
  * @function main
@@ -28,11 +32,11 @@ int main( int argc, char* argv[] ) {
     a = 0.5; b = 0.5; c = 0.5;
     e1 = 0.5; e2 = 0.5;
     x = 0; y = 0; z = 0;
-    ra = 0.7; pa = 0; ya = 0; 
-    filename = std::string("sample_test2.pcd");
+    ra = 0.0; pa = 0; ya = 0; 
+    filename = std::string("sampleSQ_output.pcd");
 
     opterr = 0;
-    while( (v = getopt(argc, argv, "N:a:b:c:x:y:z:R:P:Y:e:f:")) != -1 ) {
+    while( (v = getopt(argc, argv, "N:a:b:c:x:y:z:R:P:Y:e:f:h")) != -1 ) {
 	
 	switch(v) {
 	case 'N': {
@@ -71,7 +75,10 @@ int main( int argc, char* argv[] ) {
 	case 'f': {
 	    e2 = atof( optarg );
 	} break;
-
+	case 'h': {
+	  printHelp();
+	  return 1;
+	} break;
 	} // end of switch
 
     } // end of while
@@ -93,17 +100,25 @@ int main( int argc, char* argv[] ) {
     Tf.linear() = rot;
 
     transf2Params( Tf, par );
-
+    
     // See values
     printParamsInfo( par );
 
     // Generate samples
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
     cloud = sqs.sampleSQ_naive( par );
-
+    
     // Save
     pcl::io::savePCDFileASCII( filename, *cloud );        
     std::cout <<"\t [*] Saved "<< filename  << std::endl;
 
     return 0;
+}
+
+/**
+ * @function printHelp
+ */
+void printHelp() {
+  std::cout <<" Syntax: ./sampleSQ  -a A -b B -c C -e E1 -f E2 -x X -y Y -z Z -R roll -P pitch -Y yaw -N filename.pcd "<< std::endl;
+  return;
 }
