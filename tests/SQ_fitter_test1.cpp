@@ -46,7 +46,7 @@ filename<< std::endl;
   fitter.setInputCloud( cloud );
 
   // 2. Fit. If successful, visualize and spit out summary
-  if( fitter.fit() ) {
+  if( fitter.fit(0.05, 0.01,5,0.1) ) {
 
 	std::cout << "\t [GOOD] Fit superquadric!"<< std::endl;
 

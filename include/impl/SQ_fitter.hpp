@@ -1,40 +1,40 @@
 /**
  * @file SQ_fitter.hpp
+ * @brief Implementation
  */
 
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/centroid.h>
 #include <pcl/common/pca.h>
 #include <pcl/common/common.h>
+#include <pcl/filters/voxel_grid.h>
+
 #include <ceres/ceres.h> 
+
 #include "SQ_fitter.h"
+#include "SQ_utils.h"
+#include "SQ_structs.h"
 
 
-struct SQBaseEquation {
+/**
+ * @function SQ_fitter
+ * @brief Constructor. Create initial pointers for cloud and its normalized version
+ */
+template<typename PointT>
+SQ_fitter<PointT>::SQ_fitter() :
+  cloud_( new pcl::PointCloud<PointT>() ),
+  cloud_norm_( new pcl::PointCloud<PointT>() ) {
 
-  SQBaseEquation( double _x, double _y, double _z ) : 
-    x_(_x), y_(_y), z_(_z) {}
-  template<typename T> bool operator() ( const T* const dim,
-					 const T* const e,
-					 T* residual ) const {
-    
+}
 
-    // F(x) : Base SQ equation
-    T F; T fxy; T fz;
-    fxy = pow( ceres::abs( T(x_)/dim[0]), T(2.0)/e[1] ) + pow( ceres::abs(T(y_)/dim[1]), T(2.0)/e[1] );
-    fz =  pow( ceres::abs( T(z_)/dim[2]), T(2.0)/e[0] );
-    F = pow( ceres::abs(fxy), T(e[1]/e[0]) ) + fz;    
-    residual[0] = pow(F, e[1]) -T(1.0);
-    return true;
-    
-  }
+/**
+ * @function ~SQ_fitter
+ * @brief Destructor
+ */
+template<typename PointT>
+SQ_fitter<PointT>::~SQ_fitter() {
 
-private:
-  double x_;
-  double y_;
-  double z_;
-};
-
+}
 
 
 /**
@@ -47,6 +47,72 @@ void SQ_fitter<PointT>::setInputCloud( const PointCloudPtr &_cloud ) {
 }
 
 /**
+ * @function fit
+ * @brief Fit using Levenberg-Marquadt with box constraints
+ */
+template<typename PointT>
+bool SQ_fitter<PointT>::fit( const double &_smax,
+			     const double &_smin,
+			     const int &_N,
+			     const double &_thresh ) {
+
+  // 0. Store parameters
+  smax_ = _smax;
+  smin_ = _smin;
+  N_ = _N;
+  thresh_ = _thresh;
+
+  double ds; double error_i; double error_i_1;
+  double s_i; bool fitted; 
+  SQ_parameters par_i, par_i_1;
+
+  ds = (smax_ - smin_) / (double) N_;
+
+  // 1. Initialize par_in_ with bounding box values
+  getBoundingBox( cloud_, 
+		  par_in_.dim,
+		  par_in_.trans,
+		  par_in_.rot,
+		  cloud_norm_ );
+  // 1.1. Set e1 and e2 to middle value in range
+  par_in_.e[0] = 1.0; par_in_.e[1] = 1.0;
+ 
+  // Initial paras
+  std::cout << "Very first parameters"<<std::endl;
+  printParamsInfo(par_in_);
+  // Run loop
+  par_i = par_in_;
+
+  fitted = false;
+  for( int i = 1; i <= N_; ++i ) {
+
+    s_i = smax_ -(i-1)*ds;
+    std::cout << "Iteration "<<i<< std::endl;
+    std::cout << "Voxel size: "<< s_i << std::endl;
+    par_i_1 = par_i;
+
+    PointCloudPtr cloud_i( new pcl::PointCloud<PointT>() );
+    downsample( cloud_norm_,
+		s_i,
+		cloud_i );
+    std::cout << "Size of pointcloud evaluated: "<< cloud_i->points.size() << std::endl;
+    minimize( cloud_i,
+	      par_i_1,
+	      par_i );
+  
+    // Check
+    std::cout << "Output at iteration:"<< i << std::endl;
+    printParamsInfo( par_i );
+
+  }
+ 
+  par_out_ = par_i;
+
+  return true;
+}
+
+
+/**
  * @function getBoundingBox
  * @brief Set segmented cloud to be fitted
  */
@@ -54,7 +120,8 @@ template<typename PointT>
 void SQ_fitter<PointT>::getBoundingBox(const PointCloudPtr &_cloud,
 				       double _dim[3],
 				       double _trans[3],
-				       double _rot[3] ) {
+				       double _rot[3],
+				       PointCloudPtr &_cloud_norm ) {
 
   // 1. Compute the bounding box center
   Eigen::Vector4d centroid;
@@ -76,16 +143,16 @@ void SQ_fitter<PointT>::getBoundingBox(const PointCloudPtr &_cloud,
   _rot[2] = (double)rpy(0);
 
   // Transform _cloud
-  PointCloudPtr cloud_norm( new pcl::PointCloud<PointT>() );
-  Eigen::Matrix4f transf = Eigen::Matrix4f();
+  Eigen::Matrix4f transf = Eigen::Matrix4f::Identity();
   transf.block(0,3,3,1) << (float)centroid(0), (float)centroid(1), (float)centroid(2);
   transf.block(0,0,3,3) = eigVec;
+
   Eigen::Matrix4f tinv; tinv = transf.inverse();
-  pcl::transformPointCloud( *_cloud, *cloud_norm, tinv );
+  pcl::transformPointCloud( *_cloud, *_cloud_norm, tinv );
 
   // Get maximum and minimum
   PointT minPt; PointT maxPt;
-  pcl::getMinMax3D( *cloud_norm, minPt, maxPt );
+  pcl::getMinMax3D( *_cloud_norm, minPt, maxPt );
   
   _dim[0] = ( maxPt.x - minPt.x ) / 2.0;
   _dim[1] = ( maxPt.y - minPt.y ) / 2.0;
@@ -94,28 +161,31 @@ void SQ_fitter<PointT>::getBoundingBox(const PointCloudPtr &_cloud,
 }
 
 /**
- * @function fit
+ * @function downsample
  * @brief Fit using Levenberg-Marquadt with box constraints
  */
 template<typename PointT>
-bool SQ_fitter<PointT>::fit() {
-
-  // Initialize par_in_ with bounding box values
-  getBoundingBox( cloud_, 
-		  par_in_.dim,
-		  par_in_.trans,
-		  par_in_.rot );
-  // Set e1 and e2 to middle value in range
-  par_in_.e[0] = 1.0; par_in_.e[1] = 1.0;
-
-  std::cout << "Dim:"<< par_in_.dim[0]<<", "<<par_in_.dim[2]<<", "<<par_in_.dim[3]<<std::endl;
-
-  // Run loop
-
-
-  return true;
+void SQ_fitter<PointT>::downsample( const PointCloudPtr &_cloud,
+				    const double &_voxelSize,
+				    PointCloudPtr &_cloud_downsampled ) {
+    
+  // Create the filtering object
+  pcl::VoxelGrid< PointT > downsampler;
+  // Set input cloud
+  downsampler.setInputCloud( _cloud );
+  // Set size of voxel
+  downsampler.setLeafSize( _voxelSize, _voxelSize, _voxelSize );
+  // Downsample
+  downsampler.filter( *_cloud_downsampled );
+  
 }
 
+
+/**
+ * @function minimize
+ * @brief Apply bounded Levenberg-Marquadt with _in initial parameters
+ * @output _out
+ */
 template<typename PointT>
 bool SQ_fitter<PointT>::minimize( const PointCloudPtr &_cloud, 
 				  const SQ_parameters &_in,
@@ -123,7 +193,7 @@ bool SQ_fitter<PointT>::minimize( const PointCloudPtr &_cloud,
 
   // Parameters initially _in:
   _out = _in; 
-
+  
   // Create problem 
   ceres::Problem problem;
   // Add residual blocks
@@ -135,8 +205,8 @@ bool SQ_fitter<PointT>::minimize( const PointCloudPtr &_cloud,
 			      NULL,
 			      _out.dim, _out.e );
   }
-
-
+  
+  
   // Set limits for principal axis of Super Quadric
   for( int i = 0; i < 3; ++i ) {
     problem.SetParameterLowerBound( _out.dim, i, 0.01 );
@@ -154,30 +224,42 @@ bool SQ_fitter<PointT>::minimize( const PointCloudPtr &_cloud,
   options.max_num_iterations = 50;
   options.linear_solver_type = ceres::DENSE_QR;
   options.minimizer_type = ceres::TRUST_REGION;
-
+  options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
   // Solve
   ceres::Solver::Summary summary;
   ceres::Solve( options, &problem, &summary );
 }
 
-
+/**
+ * @function printResults
+ * @brief Print results of optimization (initial vs final fitted parameters)
+ */
 template<typename PointT>
 void SQ_fitter<PointT>::printResults() {
   
-  // Visualize final results
-  //std::cout << summary.BriefReport() << std::endl;
+  // 1. Print initial parameters information
+  std::cout << "\t [Optimization Results] Initial parameters: "<< std::endl;
+  printParamsInfo( par_in_ );
+  // 2. Print final parameters information
+  std::cout << "\t [Optimization results] Final parameters: "<< std::endl;
+  printParamsInfo( par_out_ );
+
 }
 
+/**
+ * @function visualize
+ * @brief Visualize pointcloud and final fit
+ */
 template<typename PointT>
 void SQ_fitter<PointT>::visualize() {
 
-  // Create viewer
+  // 1. Create viewer
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer( new pcl::visualization::PCLVisualizer("SQ_fitter Viewer") );
   viewer->addCoordinateSystem(1.0, 0);
   
-  // Visualize input pointcloud (GREEN)
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col(cloud_, 0,255,0);
-  viewer->addPointCloud( cloud_, col, "Input cloud" );
+  // 2. Visualize input pointcloud (GREEN)
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col(cloud_norm_, 0,255,0);
+  viewer->addPointCloud( cloud_norm_, col, "Input cloud" );
 
   Eigen::Matrix3f rot; rot = Eigen::AngleAxisf( (float)par_in_.rot[2], Eigen::Vector3f::UnitZ() )*
 			Eigen::AngleAxisf( (float)par_in_.rot[1], Eigen::Vector3f::UnitY() )*
@@ -188,20 +270,21 @@ void SQ_fitter<PointT>::visualize() {
 		   Eigen::Quaternionf(rot),
 		   par_in_.dim[0]*2, par_in_.dim[1]*2, par_in_.dim[2]*2, 
 		   "OBB");
+  
+  // 3. Visualize output fitted pointcloud (RED)
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_out( new pcl::PointCloud<pcl::PointXYZ>() );
+  cloud_out = sampleSQ_naive( par_out_ );
 
-  // Visualize output fitted pointcloud (RED)
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col_out(cloud_out, 255,0,0);
+  viewer->addPointCloud( cloud_out, col_out, "Cloud fitted"  );
 
   // Visualize initial guess (BLUE)
   /*
-  SQ_sampler sqs;
-  SQ_params par;
-  par.a = dim[0]; par.b = dim[1]; par.c = dim[2];
-  par.e1 = e[0]; par.e2 = e[1];
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloudF( new pcl::PointCloud<pcl::PointXYZ>() );
-  cloudF = sqs.sampleSQ_naive( par );
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in( new pcl::PointCloud<pcl::PointXYZ>() );
+  cloud_in = sampleSQ_naive( par_in_ );
 
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> colF(cloudF, 255,0,0);
-  viewer->addPointCloud( cloudF, colF, "Final cloud"  );
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col_in(cloud_in, 0,0,255);
+  viewer->addPointCloud( cloud_in, col_in, "Cloud initial"  );
   */
 
   while( !viewer->wasStopped() ) {
