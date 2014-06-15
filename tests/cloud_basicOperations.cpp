@@ -13,9 +13,6 @@
 
 void printHelp();
 void show( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud );
-void scalePointcloud( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_in,
-		      const double &_scale,
-		      pcl::PointCloud<pcl::PointXYZ>::Ptr &_out );
 void getBoundingBox( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud,
 		     Eigen::Vector3f &_centroid,
 		     Eigen::Matrix3f &_rot,
@@ -34,7 +31,7 @@ int main( int argc, char* argv[] ) {
   bool scaleCloud_flag = false;
   bool centerCloud_flag = false;
 
-  double scale;
+  double scale = 1;
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud( new pcl::PointCloud<pcl::PointXYZ>() );
   pcl::PointCloud<pcl::PointXYZ>::Ptr mid_cloud( new pcl::PointCloud<pcl::PointXYZ>() );
@@ -75,7 +72,6 @@ int main( int argc, char* argv[] ) {
       /** Center and normalize pointcloud */
     case 'c' : {
       centerCloud_flag = true;
-      std::cout << "Centering"<<std::endl;
     } break;
       
     } // switch
@@ -90,36 +86,42 @@ int main( int argc, char* argv[] ) {
 		  rot,
 		  dim,
 		  mid_cloud );
-  std::cout << "Get optoins "<< std::endl;
+  std::cout << "NEXT"<<std::endl;
+  Eigen::Matrix4f transf = Eigen::Matrix4f::Identity();
+
+  Eigen::Matrix4f tf_center = Eigen::Matrix4f::Identity();
+  tf_center.block(0,3,3,1) = centroid;
+  tf_center.block(0,0,3,3) = rot;  
+
+  // If scale
   if( scaleCloud_flag ) {
 
+    Eigen::Matrix4f tf_sc = Eigen::Matrix4f::Identity();
+    for( int i = 0; i < 3; ++i ) { tf_sc(i,i) = scale; }
+    
     if( centerCloud_flag ) {
-      scalePointcloud( mid_cloud,
-		       scale,
-		       output_cloud );
-    } else {
-      scalePointcloud( input_cloud,
-		       scale, output_cloud );
+      transf = tf_sc*tf_center.inverse();
     }
-  } 
-  
-  else {
-    if( centerCloud_flag ) {
-      output_cloud = mid_cloud;
-    } else {
-      output_cloud = input_cloud;
+    else {
+      transf = tf_center*tf_sc*tf_center.inverse();      
     }
 
+  } else {
+    if( centerCloud_flag ) {
+      transf = tf_center.inverse();
+    }
   }
+
 
   // Show
   if( centerCloud_flag || scaleCloud_flag ) {
     std::cout << "\t Show centered or scale cloud"<<std::endl;
+    pcl::transformPointCloud( *input_cloud, *output_cloud, transf );
     // Save
     pcl::io::savePCDFileASCII( output_name, *output_cloud );        
     std::cout <<"\t [*] Saved "<< output_name  << std::endl;
-
     show( output_cloud );
+
   } else {
     std::cout << "\t Show just input cloud"<<std::endl;
     show( input_cloud );
@@ -223,22 +225,3 @@ void show( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud ) {
 
 }
 
-/**
- * @function scalePointcloud
- * @brief Scale pointcloud by _scale factor
- */
-void scalePointcloud( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_in,
-		      const double &_scale,
-		      pcl::PointCloud<pcl::PointXYZ>::Ptr &_out ) {
-
-  for( int i = 0; i < _in->points.size(); ++i ) {
-    pcl::PointXYZ p;
-    p = _in->points[i];
-    p.x = p.x*_scale; p.y = p.y*_scale; p.z = p.z*_scale;
-    _out->points.push_back(p);
-  }
-
-  _out->height = 1;
-  _out->width = _out->points.size();
-
-}

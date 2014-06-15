@@ -23,8 +23,7 @@ class SQ_fitter {
   void getBoundingBox(const PointCloudPtr &_cloud,
 		      double _dim[3],
 		      double _trans[3],
-		      double _rot[3],
-		      PointCloudPtr &_cloud_norm );
+		      double _rot[3] );
   bool fit( const double &_smax = 0.05,
 	    const double &_smin = 0.01,
 	    const int &_N = 5,
@@ -36,7 +35,11 @@ class SQ_fitter {
 
   bool minimize( const PointCloudPtr &_cloud, 
 		 const SQ_parameters &_in,
-		 SQ_parameters &_out );
+		 SQ_parameters &_out,
+		 double &_error );
+
+  double error_metric( SQ_parameters _par,
+		       const PointCloudPtr &_cloud );
 
   void printResults();
   void visualize();
@@ -46,7 +49,6 @@ class SQ_fitter {
   SQ_parameters par_out_;
 
   PointCloudPtr cloud_;
-  PointCloudPtr cloud_norm_;
 
   double smax_; /**< Maximum voxel size */
   double smin_; /**< Minimum voxel size */
