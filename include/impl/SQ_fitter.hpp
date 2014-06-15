@@ -317,7 +317,7 @@ void SQ_fitter<PointT>::visualize() {
   
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in( new pcl::PointCloud<pcl::PointXYZ>() );
   cloud_in = sampleSQ_naive( par_in_ );
-
+  
   pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col_in(cloud_in, 0,0,255);
   viewer->addPointCloud( cloud_in, col_in, "Cloud initial"  );
   

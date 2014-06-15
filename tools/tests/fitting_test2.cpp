@@ -55,18 +55,7 @@ int main( int argc, char* argv[] ) {
 	}
     
     
-    /*
-    // 2. Get the initial values from the bounding box and PCA
-    double error0 = sqf.initialize( cloud );
-    std::cout<< "First approx. error: "<< error0 <<std::endl;
-    std::cout <<"and divided by num points("<< cloud->points.size()  <<"): "<< error0 / (double)cloud->points.size() << std::endl;
 
-    // 3. Calculate the error
-    double error = sqf.error( cloud, par );
-    
-   
-    std::cout << "Error should be very close to zero and is: "<<error<<std::endl;
-    */
   
   return 0;
 }

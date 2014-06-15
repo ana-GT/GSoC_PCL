@@ -40,5 +40,10 @@ target_link_libraries( cloud_basicOperations ${PCL_LIBRARIES} )
 set_target_properties( cloud_basicOperations PROPERTIES RUNTIME_OUTPUT_DIRECTORY
   ${CMAKE_SOURCE_DIR}/bin ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
+add_executable( SQ_utils_SE_test tests/SQ_utils_SE_test.cpp )
+target_link_libraries( SQ_utils_SE_test SQ_utils ${PCL_LIBRARIES} )
+set_target_properties( SQ_utils_SE_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+  ${CMAKE_SOURCE_DIR}/bin ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+
 
 
