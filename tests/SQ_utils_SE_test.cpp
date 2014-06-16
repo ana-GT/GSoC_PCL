@@ -8,14 +8,44 @@
 
 int main( int argc, char* argv[] ) {
 
-  double a1 = 0.5;
-  double a2 = 0.8;
-  double e = 0.2;
-  int N = 1000;
+  double a1 = 1.5;
+  double a2 = 1.5;
+  double a3 = 1.5;
+  double e1 = 1;
+  double e2 = 1;
+  int N = 400;
+  int v;
+
+  while( (v=getopt(argc, argv, "n:a:b:c:e:f:")) != -1 ) {
+    switch(v) {
+
+    case 'a' : {
+      a1 = atof(optarg);
+    }
+    case 'b' : {
+      a2 = atof(optarg);
+    }
+    case 'c' : {
+      a3 = atof(optarg);
+    }
+    case 'n' : {
+      N = atoi(optarg);
+    }
+    case 'e' : {
+      e1 = atof(optarg);
+    }
+    case 'f' : {
+      e2 = atof(optarg);
+    }
+
+    } // switch end
+  }
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
-  cloud = sampleSE_FranklinBarr( a1, a2, e, N );
+    cloud = sampleSQ_uniform( a1, a2, a3, e1, e2, N );
   
+    // cloud = sampleSE_uniform( a1, a2, e1, N );
+
   std::cout << "Cloud size: "<< cloud->points.size() << std::endl;
 
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer( new pcl::visualization::PCLVisualizer("SQ_utils_SE_test Viewer") );

@@ -21,9 +21,25 @@ void visualizeSQ(  boost::shared_ptr<pcl::visualization::PCLVisualizer> &_viewer
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSQ_naive( const SQ_parameters &_par );
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSE_FranklinBarr( const double &_a1, 
-							   const  double &_a2,
-							   const double &_e,
-							   const int &_N );
+double dTheta_0( double K, double e,
+		      double a1, double a2,
+		      double t );
+
+
+double dTheta( double K, double e,
+		    double a1, double a2,
+		    double t );
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSQ_uniform( const double &_a1, 
+						      const double &_a2,
+						      const double &_a3,
+						      const double &_e1,
+						      const double &_e2,
+						      const int &_N );
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSE_uniform( const double &_a1, 
+						      const  double &_a2,
+						      const double &_e,
+						      const int &_N );
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSQ_PiluFischer( const SQ_parameters &_par );

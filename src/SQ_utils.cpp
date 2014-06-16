@@ -107,132 +107,164 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSQ_naive( const SQ_parameters &_par ) 
   return cloud;
 }
 
+/**
+ * @function dTheta
+ */
+double dTheta( double K,
+	       double e,
+	       double a1, double a2,
+	       double t ) {
+
+  double num = (cos(t)*cos(t)*sin(t)*sin(t));
+  double den1 = a1*a1*pow( fabs(cos(t)),2*e)*pow( fabs(sin(t)),4);
+  double den2 = a2*a2*pow( fabs(sin(t)),2*e)*pow( fabs(cos(t)),4);
+  return (K/e)*sqrt( num/(den1+den2) );
+}
+
 
 /**
- * @function sampleSE_FranklinBarr
- * @brief Sample SuperEllipse - Franklin Barr
+ * @function dTheta
  */
-pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSE_FranklinBarr( const double &_a1, 
-							   const  double &_a2,
-							   const double &_e,
-							   const int &_N ) {
+double dTheta_0( double K,
+		 double e,
+		 double a1, double a2,
+		 double t ) {
+  double factor = K /a2 - pow(t, e);
+  double po = pow( fabs(factor), 1.0/e );
+  double m = fabs(po - t);
+  return m;
+}
+
+/**
+ * @file sampleSQ_uniform
+ */
+pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSQ_uniform( const double &_a1, 
+						      const double &_a2,
+						      const double &_a3,
+						      const double &_e1,
+						      const double &_e2,
+						      const int &_N ) {
+  
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr s1( new pcl::PointCloud<pcl::PointXYZ>() );
+  pcl::PointCloud<pcl::PointXYZ>::Ptr s2( new pcl::PointCloud<pcl::PointXYZ>() );
+  s1 = sampleSE_uniform( 1, _a3, _e1, _N );
+  s2 = sampleSE_uniform( _a1, _a2, _e2, _N );
+
+  pcl::PointCloud<pcl::PointXYZ>::iterator it1;
+  pcl::PointCloud<pcl::PointXYZ>::iterator it2;
+
+  for( it1 = s1->begin(); it1 != s1->end(); ++it1 ) {
+    for( it2 = s2->begin(); it2 != s2->end(); ++it2 ) {
+      pcl::PointXYZ p;
+      p.x = (*it1).x*(*it2).x;
+      p.y = (*it1).x*(*it2).y;
+      p.z = (*it1).y;
+      cloud->points.push_back(p);
+    }
+  }
+
+  cloud->width = cloud->points.size();
+  cloud->height = 1;
+
+  return cloud;
+}
+
+/**
+ * @function sampleSE_uniform
+ * @brief Sample SuperEllipse with Pilu and Fischer method
+ */
+pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSE_uniform( const double &_a1, 
+						      const  double &_a2,
+						      const double &_e,
+						      const int &_N ) {
   
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
   pcl::PointCloud<pcl::PointXYZ> cloud_base;
+
+  double theta;
+  double thresh = 0.01;
+  int numIter;
+  int maxIter = 500;
+  double K;
+
+  if( _a1 < _a2 ) { K = 2*M_PI*_a1/(double)_N; } 
+  else { K = 2*M_PI*_a2/(double)_N; }
+ 
+  // theta \in [0,thresh]
+  theta = 0;
+  numIter = 0;
   
-  double x, y, z; 
-  int numSamples_quad = _N/8;
-  double dx, dy;
+  do {
+    double dt = dTheta_0(K, _e, _a1, _a2, theta );
+    theta += dt;
+    std::cout <<"["<<numIter<<"]Theta: "<< std::fixed<<theta<< std::endl;
+    if( dt > 0 ) { std::cout << "dt > 0" << std::endl;}
+    numIter++;
 
-  // Generate base samples in half of first quadrant
-  dx = _a1 /(double)numSamples_quad;
-  for( int i = 1; i <= numSamples_quad; ++i ) {
-    pcl::PointXYZ p;
-    x = dx*i;
-    y = _a2*pow( (1.0 - pow( fabs(x)/_a1,2.0/_e) ), _e/2.0 );    
-    p.x = x; p.y = y; p.z = 0;
-    cloud_base.points.push_back(p);
-  }
-
-  // Generate base samples in second half of first quadrant
-  std::cout << "dy: "<<dy<< " y starting at: "<< y << std::endl;
-  dy = y / (double) numSamples_quad;
-  for( int i = numSamples_quad; i >= 1; --i ) {
-    pcl::PointXYZ p;
-    y -= dy;  if( y < 0 ) { break; }
-    x = _a1*pow( (1.0 - pow( fabs(y)/_a2,2.0/_e) ), _e/2.0 );    
-    p.x = x; p.y = y; p.z = 0;
-    cloud_base.points.push_back(p);
-  }
-
-
-  // Generate samples from -PI to PI
-  double x_signs[4] = {-1.0, 1.0, -1.0, 1.0};
-  double y_signs[4] = {1.0, 1.0, -1.0, -1.0};
-
-  pcl::PointCloud<pcl::PointXYZ>::iterator it;
-  for( int i = 0; i < 4; ++i ) {
-    for( it = cloud_base.begin(); it != cloud_base.end(); ++it ) {
+    if( dt != 0 ) {
       pcl::PointXYZ p;
-      p.x = x_signs[i]*(*it).x; 
-      p.y = y_signs[i]*(*it).y;
-      p.z = (*it).z;
-      cloud->points.push_back( p );
+      p.x = _a1*pow( fabs(cos(theta)), _e );
+      p.y = _a2*pow( fabs(sin(theta)), _e );
+      p.z = 0;
+      cloud_base.push_back(p);
     }
-  }
+  } while( theta < thresh   && numIter < maxIter );
+ 
+  std::cout << "[0,thresh]Cloud size: "<< cloud_base.points.size()<<std::endl;
 
-  cloud->width = cloud->points.size();
-  cloud->height = 1;
+  // theta \in [thresh, PI/2 - thresh]
+  if( theta < thresh ) { theta = thresh; }
+  numIter = 0;
+  do {
+    theta += dTheta( K, _e, _a1, _a2, theta ); 
+    numIter++;
+
+    pcl::PointXYZ p;
+    p.x = _a1*pow( fabs(cos(theta)), _e );
+    p.y = _a2*pow( fabs(sin(theta)), _e );
+    p.z = 0;
+    cloud_base.push_back(p);
+
+  } while( theta < M_PI/2.0 - thresh  && numIter < maxIter );
+
+ std::cout << "After big stint: "<< cloud_base.points.size() << std::endl;
+
+ // theta \in [PI/2 - thresh, PI/2]
+ double alpha = M_PI/2.0 - theta;
+ numIter = 0;
+ do {
+   alpha -= dTheta( K, _e, _a2, _a1, alpha );
+   numIter;
+
+    pcl::PointXYZ p;
+    p.x = _a1*pow( fabs(sin(alpha)), _e );
+    p.y = _a2*pow( fabs(cos(alpha)), _e );
+    p.z = 0;
+    cloud_base.push_back(p);
+ } while( alpha > 0 && numIter < maxIter );
+
+ std::cout << "After final big stint: "<< cloud_base.points.size() << std::endl;
+
+ // Put in final version
+ double x_signs[4] = {-1,1,1,-1};
+ double y_signs[4] = {1,1,-1,-1};
+
+ pcl::PointCloud<pcl::PointXYZ>::iterator it;
+ for( int i = 0; i < 4; ++i ) {
+   for( it = cloud_base.begin(); it != cloud_base.end(); ++it ) {
+     pcl::PointXYZ p;
+     p.x = x_signs[i]*(*it).x;
+     p.y = y_signs[i]*(*it).y;
+     p.z = (*it).z;
+     cloud->points.push_back(p);
+   }
+ }
+  cloud->width = 1;
+  cloud->height = cloud->points.size();
 
   return cloud;
 }
 
-
-
-
-
-
-/**
- * @function sampleSQ_naive
- * @brief Sample according to Pilu and Fischer method for uniform arc length between samples and correction in small/big angular values
- */
-pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSQ_PiluFischer( const SQ_parameters &_par ) {
-  
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
-  pcl::PointCloud<pcl::PointXYZ> cloud_raw;
-  
-  double cn, sn, sw, cw;
-  double n, w;
-  int num_n, num_w; double dn, dw;
-  
-  dn = 5.0*M_PI / 180.0;
-  dw = 5.0*M_PI / 180.0;
-  num_n = (int)( M_PI / dn );
-  num_w = (int)( 2*M_PI / dw );
-  
-  double a, b, c, e1, e2;
-  a = _par.dim[0]; b = _par.dim[1]; c = _par.dim[2]; 
-  e1 = _par.e[0]; e2 = _par.e[1];
-  
-  n = -M_PI / 2.0;
-  for( int i = 0; i < num_n; ++i ) {
-    n += dn;
-    cn = cos(n); sn = sin(n);
-    w = -M_PI;
-    
-    for( int j = 0; j < num_w; ++j ) {
-      w += dw;
-      cw = cos(w); sw = sin(w);
-      pcl::PointXYZ p;
-      p.x = a*pow( fabs(cn), e1 )*pow( fabs(cw), e2 );
-      p.y = b*pow( fabs(cn), e1 )*pow( fabs(sw), e2 );
-      p.z = c*pow( fabs(sn), e1 );
-      
-      // Assign signs, if needed
-      if( cn*cw < 0 ) { p.x = -p.x; }
-      if( cn*sw < 0 ) { p.y = -p.y; }
-      if( sn < 0 ) { p.z = -p.z; }
-      
-      // Store
-      cloud_raw.points.push_back(p);	    
-    }
-  }
-  
-  // Apply transform
-  Eigen::Matrix4d transf = Eigen::Matrix4d::Identity();
-  transf.block(0,3,3,1) = Eigen::Vector3d( _par.trans[0], _par.trans[1], _par.trans[2] );
-  Eigen::Matrix3d rot;
-  rot = Eigen::AngleAxisd( _par.rot[2], Eigen::Vector3d::UnitZ() )*
-    Eigen::AngleAxisd( _par.rot[1], Eigen::Vector3d::UnitY() )*
-    Eigen::AngleAxisd( _par.rot[0], Eigen::Vector3d::UnitX() );
-  transf.block(0,0,3,3) = rot;
-  pcl::transformPointCloud( cloud_raw,
-			    *cloud,
-			    transf );
-  
-  cloud->height = 1;
-  cloud->width = cloud->points.size();
-  
-  return cloud;
-}
 
