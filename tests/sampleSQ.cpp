@@ -8,10 +8,8 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <iostream>
 #include <unistd.h>
-#include <stdlib.h> // atof
+#include <stdlib.h> 
 
-#include "SQ_sampler.h"
-#include "SQ_params.h"
 #include "SQ_utils.h"
 
 void printHelp();
@@ -83,30 +81,21 @@ int main( int argc, char* argv[] ) {
 
     } // end of while
 
-    // Create the sampler class
-    SQ_sampler sqs;
 
     // Sample SQ naive
-    SQ_params par; 
-    par.a = a; par.b = b; par.c = c;
-    par.e1 = e1; par.e2 = e2;
-    
-    Eigen::Isometry3d Tf = Eigen::Isometry3d::Identity();
-    Tf.translation() = Eigen::Vector3d( x, y, z );
-    Eigen::Matrix3d rot;
-    rot = Eigen::AngleAxisd( ya, Eigen::Vector3d::UnitZ() )*
-	Eigen::AngleAxisd( pa, Eigen::Vector3d::UnitY() )*
-	Eigen::AngleAxisd( ra, Eigen::Vector3d::UnitX() ); 
-    Tf.linear() = rot;
-
-    transf2Params( Tf, par );
+    SQ_parameters par; 
+    par.dim[0] = a; par.dim[1] = b; par.dim[2] = c;
+    par.e[0] = e1; par.e[1] = e2;
+    par.trans[0] = x; par.trans[1] = y; par.trans[2] = z;
+    par.rot[0] = ra; par.rot[1] = pa; par.rot[2] = ya;
     
     // See values
+    std::cout <<"\t ** Sampled SQ Information: **"<< std::endl;
     printParamsInfo( par );
 
     // Generate samples
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
-    cloud = sqs.sampleSQ_naive( par );
+    cloud = sampleSQ_uniform( par );
     
     // Save
     pcl::io::savePCDFileASCII( filename, *cloud );        

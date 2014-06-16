@@ -40,6 +40,37 @@ void visualizeSQ(  boost::shared_ptr<pcl::visualization::PCLVisualizer> &_viewer
   
 }
 
+/**
+ * @function sampleSQ_uniform
+ */
+pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSQ_uniform( const SQ_parameters &_par ) {
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_raw( new pcl::PointCloud<pcl::PointXYZ>() );
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
+
+
+  // Get canonic SQ
+  cloud_raw = sampleSQ_uniform( _par.dim[0], _par.dim[1], _par.dim[2],
+				_par.e[0], _par.e[1] );
+  // Apply transform
+  Eigen::Matrix4d transf = Eigen::Matrix4d::Identity();
+  transf.block(0,3,3,1) = Eigen::Vector3d( _par.trans[0], _par.trans[1], _par.trans[2] );
+  Eigen::Matrix3d rot;
+  rot = Eigen::AngleAxisd( _par.rot[2], Eigen::Vector3d::UnitZ() )*
+    Eigen::AngleAxisd( _par.rot[1], Eigen::Vector3d::UnitY() )*
+    Eigen::AngleAxisd( _par.rot[0], Eigen::Vector3d::UnitX() );
+  transf.block(0,0,3,3) = rot;
+
+  pcl::transformPointCloud( *cloud_raw,
+			    *cloud,
+			    transf );
+  
+  cloud->height = 1;
+  cloud->width = cloud->points.size();
+  
+  return cloud;
+
+}
 
 
 
@@ -199,8 +230,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSE_uniform( const double &_a1,
   do {
     double dt = dTheta_0(K, _e, _a1, _a2, theta );
     theta += dt;
-    std::cout <<"["<<numIter<<"]Theta: "<< std::fixed<<theta<< std::endl;
-    if( dt > 0 ) { std::cout << "dt > 0" << std::endl;}
     numIter++;
 
     if( dt != 0 ) {
@@ -212,8 +241,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSE_uniform( const double &_a1,
     }
   } while( theta < thresh   && numIter < maxIter );
  
-  std::cout << "[0,thresh]Cloud size: "<< cloud_base.points.size()<<std::endl;
-
   // theta \in [thresh, PI/2 - thresh]
   if( theta < thresh ) { theta = thresh; }
   numIter = 0;
@@ -229,8 +256,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSE_uniform( const double &_a1,
 
   } while( theta < M_PI/2.0 - thresh  && numIter < maxIter );
 
- std::cout << "After big stint: "<< cloud_base.points.size() << std::endl;
-
  // theta \in [PI/2 - thresh, PI/2]
  double alpha = M_PI/2.0 - theta;
  numIter = 0;
@@ -244,8 +269,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr sampleSE_uniform( const double &_a1,
     p.z = 0;
     cloud_base.push_back(p);
  } while( alpha > 0 && numIter < maxIter );
-
- std::cout << "After final big stint: "<< cloud_base.points.size() << std::endl;
 
  // Put in final version
  double x_signs[4] = {-1,1,1,-1};

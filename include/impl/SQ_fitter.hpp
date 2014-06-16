@@ -73,8 +73,8 @@ bool SQ_fitter<PointT>::fit( const double &_smax,
 		  par_in_.trans,
 		  par_in_.rot );
   // 1.1. Set e1 and e2 to middle value in range
-  par_in_.e[0] = 1.0; par_in_.e[1] = 1.0;
- 
+  par_in_.e[0] = 0.5; par_in_.e[1] = 1.0;
+
   // Run loop
   par_i = par_in_;
   error_i = error_metric( par_i, cloud_ );
@@ -220,10 +220,11 @@ bool SQ_fitter<PointT>::minimize( const PointCloudPtr &_cloud,
     problem.SetParameterUpperBound( _out.dim, i, 0.8 );
   }
   // Set limits for coefficients e1 and e2
-  for( int i = 0; i < 2; ++i ) {
-    problem.SetParameterLowerBound( _out.e, i, 0.1 );
-    problem.SetParameterUpperBound( _out.e, i, 1.9 );  
-  }
+    problem.SetParameterLowerBound( _out.e, 0, 0.1 );
+    problem.SetParameterUpperBound( _out.e, 0, 1.0 );  
+
+    problem.SetParameterLowerBound( _out.e, 1, 0.1 );
+    problem.SetParameterUpperBound( _out.e, 1, 1.9 );  
 
 
   // Set options
@@ -308,19 +309,19 @@ void SQ_fitter<PointT>::visualize() {
   
   // 3. Visualize output fitted pointcloud (RED)
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_out( new pcl::PointCloud<pcl::PointXYZ>() );
-  cloud_out = sampleSQ_naive( par_out_ );
+  cloud_out = sampleSQ_uniform( par_out_ );
 
   pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col_out(cloud_out, 255,0,0);
   viewer->addPointCloud( cloud_out, col_out, "Cloud fitted"  );
 
   // Visualize initial guess (BLUE)
-  
+/*  
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in( new pcl::PointCloud<pcl::PointXYZ>() );
   cloud_in = sampleSQ_naive( par_in_ );
   
   pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col_in(cloud_in, 0,0,255);
   viewer->addPointCloud( cloud_in, col_in, "Cloud initial"  );
-  
+  */
 
   while( !viewer->wasStopped() ) {
     viewer->spinOnce(100);

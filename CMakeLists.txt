@@ -9,10 +9,6 @@ add_definitions( ${PCL_DEFINITIONS} )
 # Ceres
 find_package( Ceres )
 
-# Add previous stuff
-#add_subdirectory( tools )
-#include_directories( ${CMAKE_SOURCE_DIR}/tools/include )
-
 include_directories( ${CMAKE_SOURCE_DIR}/include )
 link_directories( ${CMAKE_SOURCE_DIR}/lib )
 
@@ -46,4 +42,8 @@ set_target_properties( SQ_utils_SE_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY
   ${CMAKE_SOURCE_DIR}/bin ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
 
+add_executable( sampleSQ tests/sampleSQ.cpp )
+target_link_libraries( sampleSQ SQ_utils ${PCL_LIBRARIES} )
+set_target_properties( sampleSQ PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+  ${CMAKE_SOURCE_DIR}/bin ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
