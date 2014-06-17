@@ -47,3 +47,8 @@ target_link_libraries( sampleSQ SQ_utils ${PCL_LIBRARIES} )
 set_target_properties( sampleSQ PROPERTIES RUNTIME_OUTPUT_DIRECTORY
   ${CMAKE_SOURCE_DIR}/bin ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 
+add_executable( sampleSQ_naive tests/sampleSQ_naive.cpp )
+target_link_libraries( sampleSQ_naive SQ_utils ${PCL_LIBRARIES} )
+set_target_properties( sampleSQ_naive PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+  ${CMAKE_SOURCE_DIR}/bin ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
+

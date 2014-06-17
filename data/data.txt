@@ -1,0 +1,4 @@
+cylinder_5_naive / uniform: a: 0.1 b: 0.1 c: 0.2 e1: 0.1 e2: 1.0
+ball_5 naive / uniform: a: 0.5 b: 0.5 c: 0.5 e1: 1.0 e2: 1.0
+box: 0.2 0.2 0.25 e1: 0.2 e2: 0.2
+ellipsoid: 0.5  0.4 0.3 e1: 0.5 e2: 1.25

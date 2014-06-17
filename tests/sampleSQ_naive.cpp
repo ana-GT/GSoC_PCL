@@ -31,7 +31,7 @@ int main( int argc, char* argv[] ) {
     e1 = 0.5; e2 = 0.5;
     x = 0; y = 0; z = 0;
     ra = 0.0; pa = 0; ya = 0; 
-    filename = std::string("sampleSQ_output.pcd");
+    filename = std::string("sampleSQ_naive_output.pcd");
 
     opterr = 0;
     while( (v = getopt(argc, argv, "N:a:b:c:x:y:z:R:P:Y:e:f:h")) != -1 ) {
@@ -99,7 +99,7 @@ int main( int argc, char* argv[] ) {
 
     // Generate samples
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ>() );
-    cloud = sampleSQ_uniform( par );
+    cloud = sampleSQ_naive( par );
     
     // Save
     pcl::io::savePCDFileASCII( filename, *cloud );        

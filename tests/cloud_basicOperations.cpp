@@ -194,7 +194,8 @@ void show( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud ) {
 
     // [DEBUG] Visualize 
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer( new pcl::visualization::PCLVisualizer("showInfo viewer") );
-    viewer->addCoordinateSystem(1.0, 0);
+    //viewer->addCoordinateSystem(1.0, 0);
+     //viewer->setBackgroundColor(1,1,1);
     
     // [DEBUG] Visualize input pointcloud (GREEN)
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> col(_cloud, 0,255,0);
@@ -206,12 +207,12 @@ void show( const pcl::PointCloud<pcl::PointXYZ>::Ptr &_cloud ) {
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2( new pcl::PointCloud<pcl::PointXYZ>() );
     getBoundingBox( _cloud, centroid, rot, dim, cloud2 ); 
-		    
+	/*	    
     viewer->addCube( centroid,
 		     Eigen::Quaternionf(rot),
 		     dim(0)*2, dim(1)*2, dim(2)*2, 
 		     "OBB" );
-
+*/
     // [PRINT INFO]
     std::cout << "\t [INFO] Bounding box dimensions: "<< dim.transpose() << std::endl;
     std::cout << "\t [INFO] Centroid: "<< centroid.transpose() << std::endl;   
