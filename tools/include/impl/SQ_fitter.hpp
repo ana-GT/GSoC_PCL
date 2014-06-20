@@ -9,6 +9,9 @@
 #include "minimizer.h"
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/common/centroid.h>
+#include <pcl/common/pca.h>
+#include <pcl/common/common.h>
 
 #include <pcl/visualization/cloud_viewer.h>
 
@@ -94,6 +97,59 @@ bool SQ_fitter<PointT>::SQFitting( const PointCloudPtr &_cloud,
 }
 
 /**
+ * @function getBoundingBox
+ * @brief Set segmented cloud to be fitted
+ */
+template<typename PointT>
+void SQ_fitter<PointT>::getBoundingBox(const PointCloudPtr &_cloud,
+				       double _dim[3],
+				       double _trans[3],
+				       double _rot[3] ) {
+
+  // 1. Compute the bounding box center
+  Eigen::Vector4d centroid;
+  pcl::compute3DCentroid( *_cloud, centroid );
+  _trans[0] = centroid(0);
+  _trans[1] = centroid(1); 
+  _trans[2] = centroid(2);
+
+  // 2. Compute main axis orientations
+  pcl::PCA<PointT> pca;
+  pca.setInputCloud( _cloud );
+  Eigen::Vector3f eigVal = pca.getEigenValues();
+  Eigen::Matrix3f eigVec = pca.getEigenVectors();
+  // Make sure 3 vectors are normal w.r.t. each other
+  Eigen::Vector3f temp;
+  eigVec.col(2) = eigVec.col(0); // Z
+  Eigen::Vector3f v3 = (eigVec.col(1)).cross( eigVec.col(2) );
+  eigVec.col(0) = v3;
+  Eigen::Vector3f rpy = eigVec.eulerAngles(2,1,0);
+ 
+  _rot[0] = (double)rpy(2);
+  _rot[1] = (double)rpy(1);
+  _rot[2] = (double)rpy(0);
+
+  // Transform _cloud
+  Eigen::Matrix4f transf = Eigen::Matrix4f::Identity();
+  transf.block(0,3,3,1) << (float)centroid(0), (float)centroid(1), (float)centroid(2);
+  transf.block(0,0,3,3) = eigVec;
+
+  Eigen::Matrix4f tinv; tinv = transf.inverse();
+  PointCloudPtr cloud_temp( new pcl::PointCloud<PointT>() );
+  pcl::transformPointCloud( *_cloud, *cloud_temp, tinv );
+
+  // Get maximum and minimum
+  PointT minPt; PointT maxPt;
+  pcl::getMinMax3D( *cloud_temp, minPt, maxPt );
+  
+  _dim[0] = ( maxPt.x - minPt.x ) / 2.0;
+  _dim[1] = ( maxPt.y - minPt.y ) / 2.0;
+  _dim[2] = ( maxPt.z - minPt.z ) / 2.0;
+
+}
+
+
+/**
  * @function initialize
  * @brief Set initial approx. values for parameters
  */    
@@ -101,36 +157,24 @@ template<typename PointT>
 double SQ_fitter<PointT>::initialize( const PointCloudPtr &_cloud,
 				      SQ_params &_par_out ) {
 
-    // Find the bounding box for an initial ellipsoid shape approximation
-    pcl::MomentOfInertiaEstimation<PointT> estimator;
-    estimator.setInputCloud( _cloud );
-    estimator.compute();
+  double dim[3]; double trans[3]; double rot[3];
+  getBoundingBox( _cloud, dim, trans, rot );
+		  
+  _par_out.px = trans[0];
+  _par_out.py = trans[1]; 
+  _par_out.pz = trans[2];
+ 
+  _par_out.ra = rot[0];
+  _par_out.pa = rot[1];
+  _par_out.ya = rot[2];
+  
+  _par_out.a = dim[0];
+  _par_out.b = dim[1];
+  _par_out.c = dim[2];
 
-    PointT minPt_OBB, maxPt_OBB, center_OBB;
-    Eigen::Matrix3f rotMat_OBB;
-    Eigen::Vector3f axisX0, axisY0, axisZ0;
-    double a0, b0, c0;
-
-    estimator.getOBB( minPt_OBB, maxPt_OBB, 
-		      center_OBB, rotMat_OBB );
-
-    // Same info as in rotMat_OBB (or it should be)
-    //estimator.getEigenVectors( axisX0, axisY0, axisZ0 );
-    _par_out.a = (maxPt_OBB.x - minPt_OBB.x)*0.5;
-    _par_out.b = (maxPt_OBB.y - minPt_OBB.y)*0.5;
-    _par_out.c = (maxPt_OBB.z - minPt_OBB.z)*0.5;
-    _par_out.e1 = 0.5; _par_out.e2 = 0.5;
+  _par_out.e1 = 0.5; _par_out.e2 = 0.5;
     
-    Eigen::Isometry3d Tf = Eigen::Isometry3d::Identity();
-    Tf.translation() = Eigen::Vector3d(center_OBB.x, center_OBB.y, center_OBB.z );
-    Tf.linear() << (double)rotMat_OBB(0,0), (double)rotMat_OBB(0,1), (double)rotMat_OBB(0,2), 
-	(double)rotMat_OBB(1,0), (double)rotMat_OBB(1,1), (double)rotMat_OBB(1,2), 
-	(double)rotMat_OBB(2,0), (double)rotMat_OBB(2,1), (double)rotMat_OBB(2,2);
-    
-    transf2Params( Tf, _par_out );
-    
-
-    return this->error( _par_out );
+  return this->error( _par_out );
 }
 
 /**

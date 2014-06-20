@@ -26,6 +26,12 @@ class SQ_fitter {
 		  const int &_N = 5,
 		  const double &_thresh = 0.1 );   
    
+
+  void getBoundingBox( const PointCloudPtr &_cloud,
+		       double _dim[3],
+		       double _trans[3],
+		       double _rot[3] );
+
   /**< Getters */
   SQ_params get_init_params() { return par_in_; }
   SQ_params get_fit_params() { return par_out_; }
